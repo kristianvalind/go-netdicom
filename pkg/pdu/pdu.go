@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
 )
 
 // PDU is the interface for DUL messages like A-ASSOCIATE-AC, P-DATA-TF.
@@ -26,7 +26,7 @@ type PDU interface {
 	// WritePayload encodes the PDU payload. The "payload" here excludes the
 	// first 6 bytes that are common to all PDU types - they are encoded in
 	// EncodePDU separately.
-	WritePayload(*dicomio.Encoder)
+	WritePayload(*dicomio.Writer)
 }
 
 // Type defines type of the PDU packet.
@@ -48,7 +48,7 @@ type SubItem interface {
 	fmt.Stringer
 
 	// Write serializes the item.
-	Write(*dicomio.Encoder)
+	Write(*dicomio.Writer)
 }
 
 // Possible Type field values for SubItem.
@@ -66,43 +66,51 @@ const (
 	ItemTypeImplementationVersionName    = 0x55
 )
 
-func decodeSubItem(d *dicomio.Decoder) SubItem {
-	itemType := d.ReadByte()
-	d.Skip(1)
-	length := d.ReadUInt16()
+func decodeSubItem(r dicomio.Reader) (SubItem, error) {
+	itemType, err := r.ReadUInt8()
+	if err != nil {
+		return nil, err
+	}
+
+	r.Skip(1)
+
+	length, err := r.ReadUInt16()
+	if err != nil {
+		return nil, err
+	}
+
 	switch itemType {
 	case ItemTypeApplicationContext:
-		return decodeApplicationContextItem(d, length)
+		return decodeApplicationContextItem(r, length), nil
 	case ItemTypeAbstractSyntax:
-		return decodeAbstractSyntaxSubItem(d, length)
+		return decodeAbstractSyntaxSubItem(r, length), nil
 	case ItemTypeTransferSyntax:
-		return decodeTransferSyntaxSubItem(d, length)
+		return decodeTransferSyntaxSubItem(r, length), nil
 	case ItemTypePresentationContextRequest:
-		return decodePresentationContextItem(d, itemType, length)
+		return decodePresentationContextItem(r, itemType, length), nil
 	case ItemTypePresentationContextResponse:
-		return decodePresentationContextItem(d, itemType, length)
+		return decodePresentationContextItem(r, itemType, length), nil
 	case ItemTypeUserInformation:
-		return decodeUserInformationItem(d, length)
+		return decodeUserInformationItem(r, length)
 	case ItemTypeUserInformationMaximumLength:
-		return decodeUserInformationMaximumLengthItem(d, length)
+		return decodeUserInformationMaximumLengthItem(r, length)
 	case ItemTypeImplementationClassUID:
-		return decodeImplementationClassUIDSubItem(d, length)
+		return decodeImplementationClassUIDSubItem(r, length), nil
 	case ItemTypeAsynchronousOperationsWindow:
-		return decodeAsynchronousOperationsWindowSubItem(d, length)
+		return decodeAsynchronousOperationsWindowSubItem(r, length), nil
 	case ItemTypeRoleSelection:
-		return decodeRoleSelectionSubItem(d, length)
+		return decodeRoleSelectionSubItem(r, length), nil
 	case ItemTypeImplementationVersionName:
-		return decodeImplementationVersionNameSubItem(d, length)
+		return decodeImplementationVersionNameSubItem(r, length), nil
 	default:
-		d.SetError(fmt.Errorf("Unknown item type: 0x%x", itemType))
-		return nil
+		return nil, fmt.Errorf("Unknown item type: 0x%x", itemType)
 	}
 }
 
 func encodeSubItemHeader(w *dicomio.Writer, itemType byte, length uint16) {
-	e.WriteByte(itemType)
-	e.WriteZeros(1)
-	e.WriteUInt16(length)
+	w.WriteByte(itemType)
+	w.WriteZeros(1)
+	w.WriteUInt16(length)
 }
 
 // P3.8 9.3.2.3
@@ -124,18 +132,19 @@ func (v *UserInformationItem) Write(w *dicomio.Writer) {
 	e.WriteBytes(itemBytes)
 }
 
-func decodeUserInformationItem(d *dicomio.Decoder, length uint16) *UserInformationItem {
+func decodeUserInformationItem(r dicomio.Reader, length uint16) (*UserInformationItem, error) {
 	v := &UserInformationItem{}
-	d.PushLimit(int64(length))
-	defer d.PopLimit()
-	for !d.EOF() {
-		item := decodeSubItem(d)
-		if d.Error() != nil {
+	var err error
+	r.PushLimit(int64(length))
+	defer r.PopLimit()
+	for !r.IsLimitExhausted() {
+		item, err := decodeSubItem(r)
+		if err != nil {
 			break
 		}
 		v.Items = append(v.Items, item)
 	}
-	return v
+	return v, err
 }
 
 func (v *UserInformationItem) String() string {
@@ -153,11 +162,12 @@ func (v *UserInformationMaximumLengthItem) Write(w *dicomio.Writer) {
 	e.WriteUInt32(v.MaximumLengthReceived)
 }
 
-func decodeUserInformationMaximumLengthItem(d *dicomio.Decoder, length uint16) *UserInformationMaximumLengthItem {
+func decodeUserInformationMaximumLengthItem(r dicomio.Reader, length uint16) (*UserInformationMaximumLengthItem, error) {
 	if length != 4 {
-		d.SetError(fmt.Errorf("UserInformationMaximumLengthItem must be 4 bytes, but found %dB", length))
+		return nil, fmt.Errorf("UserInformationMaximumLengthItem must be 4 bytes, but found %dB", length)
 	}
-	return &UserInformationMaximumLengthItem{MaximumLengthReceived: d.ReadUInt32()}
+	maxLengthRecieved, err := r.ReadUInt32()
+	return &UserInformationMaximumLengthItem{MaximumLengthReceived: maxLengthRecieved}, err
 }
 
 func (v *UserInformationMaximumLengthItem) String() string {
@@ -168,7 +178,7 @@ func (v *UserInformationMaximumLengthItem) String() string {
 // PS3.7 Annex D.3.3.2.1
 type ImplementationClassUIDSubItem subItemWithName
 
-func decodeImplementationClassUIDSubItem(d *dicomio.Decoder, length uint16) *ImplementationClassUIDSubItem {
+func decodeImplementationClassUIDSubItem(r dicomio.Reader, length uint16) *ImplementationClassUIDSubItem {
 	return &ImplementationClassUIDSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
@@ -186,7 +196,7 @@ type AsynchronousOperationsWindowSubItem struct {
 	MaxOpsPerformed uint16
 }
 
-func decodeAsynchronousOperationsWindowSubItem(d *dicomio.Decoder, length uint16) *AsynchronousOperationsWindowSubItem {
+func decodeAsynchronousOperationsWindowSubItem(r dicomio.Reader, length uint16) *AsynchronousOperationsWindowSubItem {
 	return &AsynchronousOperationsWindowSubItem{
 		MaxOpsInvoked:   d.ReadUInt16(),
 		MaxOpsPerformed: d.ReadUInt16(),
@@ -211,7 +221,7 @@ type RoleSelectionSubItem struct {
 	SCPRole     byte
 }
 
-func decodeRoleSelectionSubItem(d *dicomio.Decoder, length uint16) *RoleSelectionSubItem {
+func decodeRoleSelectionSubItem(r dicomio.Reader, length uint16) *RoleSelectionSubItem {
 	uidLen := d.ReadUInt16()
 	return &RoleSelectionSubItem{
 		SOPClassUID: d.ReadString(int(uidLen)),
@@ -235,7 +245,7 @@ func (v *RoleSelectionSubItem) String() string {
 // PS3.7 Annex D.3.3.2.3
 type ImplementationVersionNameSubItem subItemWithName
 
-func decodeImplementationVersionNameSubItem(d *dicomio.Decoder, length uint16) *ImplementationVersionNameSubItem {
+func decodeImplementationVersionNameSubItem(r dicomio.Reader, length uint16) *ImplementationVersionNameSubItem {
 	return &ImplementationVersionNameSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
@@ -275,8 +285,8 @@ func encodeSubItemWithName(w *dicomio.Writer, itemType byte, name string) {
 	e.WriteBytes([]byte(name))
 }
 
-func decodeSubItemWithName(d *dicomio.Decoder, length uint16) string {
-	return d.ReadString(int(length))
+func decodeSubItemWithName(r dicomio.Reader, length uint32) (string, error) {
+	return r.ReadString(length)
 }
 
 type ApplicationContextItem subItemWithName
@@ -284,7 +294,7 @@ type ApplicationContextItem subItemWithName
 // The app context for DICOM. The first item in the A-ASSOCIATE-RQ
 const DICOMApplicationContextItemName = "1.2.840.10008.3.1.1.1"
 
-func decodeApplicationContextItem(d *dicomio.Decoder, length uint16) *ApplicationContextItem {
+func decodeApplicationContextItem(r dicomio.Reader, length uint16) *ApplicationContextItem {
 	return &ApplicationContextItem{Name: decodeSubItemWithName(d, length)}
 }
 
@@ -298,7 +308,7 @@ func (v *ApplicationContextItem) String() string {
 
 type AbstractSyntaxSubItem subItemWithName
 
-func decodeAbstractSyntaxSubItem(d *dicomio.Decoder, length uint16) *AbstractSyntaxSubItem {
+func decodeAbstractSyntaxSubItem(r dicomio.Reader, length uint16) *AbstractSyntaxSubItem {
 	return &AbstractSyntaxSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
@@ -312,7 +322,7 @@ func (v *AbstractSyntaxSubItem) String() string {
 
 type TransferSyntaxSubItem subItemWithName
 
-func decodeTransferSyntaxSubItem(d *dicomio.Decoder, length uint16) *TransferSyntaxSubItem {
+func decodeTransferSyntaxSubItem(r dicomio.Reader, length uint16) *TransferSyntaxSubItem {
 	return &TransferSyntaxSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
@@ -349,7 +359,7 @@ type PresentationContextItem struct {
 	Items []SubItem // List of {Abstract,Transfer}SyntaxSubItem
 }
 
-func decodePresentationContextItem(d *dicomio.Decoder, itemType byte, length uint16) *PresentationContextItem {
+func decodePresentationContextItem(r dicomio.Reader, itemType byte, length uint16) *PresentationContextItem {
 	v := &PresentationContextItem{Type: itemType}
 	d.PushLimit(int64(length))
 	defer d.PopLimit()
@@ -413,7 +423,7 @@ type PresentationDataValueItem struct {
 	Value []byte
 }
 
-func ReadPresentationDataValueItem(d *dicomio.Decoder) PresentationDataValueItem {
+func ReadPresentationDataValueItem(r dicomio.Reader) PresentationDataValueItem {
 	item := PresentationDataValueItem{}
 	length := d.ReadUInt32()
 	item.ContextID = d.ReadByte()
@@ -531,7 +541,7 @@ func ReadPDU(in io.Reader, maxPDUSize int) (PDU, error) {
 type AReleaseRq struct {
 }
 
-func decodeAReleaseRq(d *dicomio.Decoder) *AReleaseRq {
+func decodeAReleaseRq(r dicomio.Reader) *AReleaseRq {
 	pdu := &AReleaseRq{}
 	d.Skip(4)
 	return pdu
@@ -548,7 +558,7 @@ func (pdu *AReleaseRq) String() string {
 type AReleaseRp struct {
 }
 
-func decodeAReleaseRp(d *dicomio.Decoder) *AReleaseRp {
+func decodeAReleaseRp(r dicomio.Reader) *AReleaseRp {
 	pdu := &AReleaseRp{}
 	d.Skip(4)
 	return pdu
@@ -587,7 +597,7 @@ type AAssociate struct {
 	Items          []SubItem
 }
 
-func decodeAAssociate(d *dicomio.Decoder, pduType Type) *AAssociate {
+func decodeAAssociate(r dicomio.Reader, pduType Type) *AAssociate {
 	pdu := &AAssociate{}
 	pdu.Type = pduType
 	pdu.ProtocolVersion = d.ReadUInt16()
@@ -666,7 +676,7 @@ const (
 	SourceULServiceProviderPresentation SourceType = 3
 )
 
-func decodeAAssociateRj(d *dicomio.Decoder) *AAssociateRj {
+func decodeAAssociateRj(r dicomio.Reader) *AAssociateRj {
 	pdu := &AAssociateRj{}
 	d.Skip(1) // reserved
 	pdu.Result = RejectResultType(d.ReadByte())
@@ -701,7 +711,7 @@ type AAbort struct {
 	Reason AbortReasonType
 }
 
-func decodeAAbort(d *dicomio.Decoder) *AAbort {
+func decodeAAbort(r dicomio.Reader) *AAbort {
 	pdu := &AAbort{}
 	d.Skip(2)
 	pdu.Source = SourceType(d.ReadByte())
@@ -723,7 +733,7 @@ type PDataTf struct {
 	Items []PresentationDataValueItem
 }
 
-func decodePDataTf(d *dicomio.Decoder) *PDataTf {
+func decodePDataTf(r dicomio.Reader) *PDataTf {
 	pdu := &PDataTf{}
 	for !d.EOF() {
 		item := ReadPresentationDataValueItem(d)
