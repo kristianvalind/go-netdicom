@@ -99,7 +99,7 @@ func decodeSubItem(d *dicomio.Decoder) SubItem {
 	}
 }
 
-func encodeSubItemHeader(e *dicomio.Encoder, itemType byte, length uint16) {
+func encodeSubItemHeader(w *dicomio.Writer, itemType byte, length uint16) {
 	e.WriteByte(itemType)
 	e.WriteZeros(1)
 	e.WriteUInt16(length)
@@ -110,7 +110,7 @@ type UserInformationItem struct {
 	Items []SubItem // P3.8, Annex D.
 }
 
-func (v *UserInformationItem) Write(e *dicomio.Encoder) {
+func (v *UserInformationItem) Write(w *dicomio.Writer) {
 	itemEncoder := dicomio.NewBytesEncoder(binary.BigEndian, dicomio.UnknownVR)
 	for _, s := range v.Items {
 		s.Write(itemEncoder)
@@ -148,7 +148,7 @@ type UserInformationMaximumLengthItem struct {
 	MaximumLengthReceived uint32
 }
 
-func (v *UserInformationMaximumLengthItem) Write(e *dicomio.Encoder) {
+func (v *UserInformationMaximumLengthItem) Write(w *dicomio.Writer) {
 	encodeSubItemHeader(e, ItemTypeUserInformationMaximumLength, 4)
 	e.WriteUInt32(v.MaximumLengthReceived)
 }
@@ -172,7 +172,7 @@ func decodeImplementationClassUIDSubItem(d *dicomio.Decoder, length uint16) *Imp
 	return &ImplementationClassUIDSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
-func (v *ImplementationClassUIDSubItem) Write(e *dicomio.Encoder) {
+func (v *ImplementationClassUIDSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemWithName(e, ItemTypeImplementationClassUID, v.Name)
 }
 
@@ -193,7 +193,7 @@ func decodeAsynchronousOperationsWindowSubItem(d *dicomio.Decoder, length uint16
 	}
 }
 
-func (v *AsynchronousOperationsWindowSubItem) Write(e *dicomio.Encoder) {
+func (v *AsynchronousOperationsWindowSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemHeader(e, ItemTypeAsynchronousOperationsWindow, 2*2)
 	e.WriteUInt16(v.MaxOpsInvoked)
 	e.WriteUInt16(v.MaxOpsPerformed)
@@ -220,7 +220,7 @@ func decodeRoleSelectionSubItem(d *dicomio.Decoder, length uint16) *RoleSelectio
 	}
 }
 
-func (v *RoleSelectionSubItem) Write(e *dicomio.Encoder) {
+func (v *RoleSelectionSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemHeader(e, ItemTypeRoleSelection, uint16(2+len(v.SOPClassUID)+1*2))
 	e.WriteUInt16(uint16(len(v.SOPClassUID)))
 	e.WriteString(v.SOPClassUID)
@@ -239,7 +239,7 @@ func decodeImplementationVersionNameSubItem(d *dicomio.Decoder, length uint16) *
 	return &ImplementationVersionNameSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
-func (v *ImplementationVersionNameSubItem) Write(e *dicomio.Encoder) {
+func (v *ImplementationVersionNameSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemWithName(e, ItemTypeImplementationVersionName, v.Name)
 }
 
@@ -253,7 +253,7 @@ type SubItemUnsupported struct {
 	Data []byte
 }
 
-func (item *SubItemUnsupported) Write(e *dicomio.Encoder) {
+func (item *SubItemUnsupported) Write(w *dicomio.Writer) {
 	encodeSubItemHeader(e, item.Type, uint16(len(item.Data)))
 	// TODO: handle unicode properly
 	e.WriteBytes(item.Data)
@@ -269,7 +269,7 @@ type subItemWithName struct {
 	Name string
 }
 
-func encodeSubItemWithName(e *dicomio.Encoder, itemType byte, name string) {
+func encodeSubItemWithName(w *dicomio.Writer, itemType byte, name string) {
 	encodeSubItemHeader(e, itemType, uint16(len(name)))
 	// TODO: handle unicode properly
 	e.WriteBytes([]byte(name))
@@ -288,7 +288,7 @@ func decodeApplicationContextItem(d *dicomio.Decoder, length uint16) *Applicatio
 	return &ApplicationContextItem{Name: decodeSubItemWithName(d, length)}
 }
 
-func (v *ApplicationContextItem) Write(e *dicomio.Encoder) {
+func (v *ApplicationContextItem) Write(w *dicomio.Writer) {
 	encodeSubItemWithName(e, ItemTypeApplicationContext, v.Name)
 }
 
@@ -302,7 +302,7 @@ func decodeAbstractSyntaxSubItem(d *dicomio.Decoder, length uint16) *AbstractSyn
 	return &AbstractSyntaxSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
-func (v *AbstractSyntaxSubItem) Write(e *dicomio.Encoder) {
+func (v *AbstractSyntaxSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemWithName(e, ItemTypeAbstractSyntax, v.Name)
 }
 
@@ -316,7 +316,7 @@ func decodeTransferSyntaxSubItem(d *dicomio.Decoder, length uint16) *TransferSyn
 	return &TransferSyntaxSubItem{Name: decodeSubItemWithName(d, length)}
 }
 
-func (v *TransferSyntaxSubItem) Write(e *dicomio.Encoder) {
+func (v *TransferSyntaxSubItem) Write(w *dicomio.Writer) {
 	encodeSubItemWithName(e, ItemTypeTransferSyntax, v.Name)
 }
 
@@ -370,7 +370,7 @@ func decodePresentationContextItem(d *dicomio.Decoder, itemType byte, length uin
 	return v
 }
 
-func (v *PresentationContextItem) Write(e *dicomio.Encoder) {
+func (v *PresentationContextItem) Write(w *dicomio.Writer) {
 	if v.Type != ItemTypePresentationContextRequest &&
 		v.Type != ItemTypePresentationContextResponse {
 		panic(*v)
@@ -424,7 +424,7 @@ func ReadPresentationDataValueItem(d *dicomio.Decoder) PresentationDataValueItem
 	return item
 }
 
-func (v *PresentationDataValueItem) Write(e *dicomio.Encoder) {
+func (v *PresentationDataValueItem) Write(w *dicomio.Writer) {
 	var header byte
 	if v.Command {
 		header |= 1
@@ -537,7 +537,7 @@ func decodeAReleaseRq(d *dicomio.Decoder) *AReleaseRq {
 	return pdu
 }
 
-func (pdu *AReleaseRq) WritePayload(e *dicomio.Encoder) {
+func (pdu *AReleaseRq) WritePayload(w *dicomio.Writer) {
 	e.WriteZeros(4)
 }
 
@@ -554,7 +554,7 @@ func decodeAReleaseRp(d *dicomio.Decoder) *AReleaseRp {
 	return pdu
 }
 
-func (pdu *AReleaseRp) WritePayload(e *dicomio.Encoder) {
+func (pdu *AReleaseRp) WritePayload(w *dicomio.Writer) {
 	e.WriteZeros(4)
 }
 
@@ -608,7 +608,7 @@ func decodeAAssociate(d *dicomio.Decoder, pduType Type) *AAssociate {
 	return pdu
 }
 
-func (pdu *AAssociate) WritePayload(e *dicomio.Encoder) {
+func (pdu *AAssociate) WritePayload(w *dicomio.Writer) {
 	if pdu.Type == 0 || pdu.CalledAETitle == "" || pdu.CallingAETitle == "" {
 		panic(*pdu)
 	}
@@ -675,7 +675,7 @@ func decodeAAssociateRj(d *dicomio.Decoder) *AAssociateRj {
 	return pdu
 }
 
-func (pdu *AAssociateRj) WritePayload(e *dicomio.Encoder) {
+func (pdu *AAssociateRj) WritePayload(w *dicomio.Writer) {
 	e.WriteZeros(1)
 	e.WriteByte(byte(pdu.Result))
 	e.WriteByte(byte(pdu.Source))
@@ -709,7 +709,7 @@ func decodeAAbort(d *dicomio.Decoder) *AAbort {
 	return pdu
 }
 
-func (pdu *AAbort) WritePayload(e *dicomio.Encoder) {
+func (pdu *AAbort) WritePayload(w *dicomio.Writer) {
 	e.WriteZeros(2)
 	e.WriteByte(byte(pdu.Source))
 	e.WriteByte(byte(pdu.Reason))
@@ -735,7 +735,7 @@ func decodePDataTf(d *dicomio.Decoder) *PDataTf {
 	return pdu
 }
 
-func (pdu *PDataTf) WritePayload(e *dicomio.Encoder) {
+func (pdu *PDataTf) WritePayload(w *dicomio.Writer) {
 	for _, item := range pdu.Items {
 		item.Write(e)
 	}

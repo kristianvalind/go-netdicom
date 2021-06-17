@@ -9,12 +9,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomlog"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/grailbio/go-dicom/dicomuid"
-	"github.com/grailbio/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 type serviceUserStatus int

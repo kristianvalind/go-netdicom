@@ -1,7 +1,7 @@
 package sopclass
 
 import (
-	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 // DICOM SOP UID listing.

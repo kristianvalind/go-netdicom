@@ -13,14 +13,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/grailbio/go-dicom/dicomuid"
-	"github.com/grailbio/go-netdicom/dimse"
-	"github.com/grailbio/go-netdicom/sopclass"
+	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/sopclass"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 var provider *ServiceProvider

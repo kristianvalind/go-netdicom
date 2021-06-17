@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"sort"
 
-	dicom "github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomlog"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/grailbio/go-netdicom/pdu"
+	"github.com/kristianvalind/go-netdicom/pdu"
+	dicom "github.com/suyashkumar/dicom"
 )
 
 // Message defines the common interface for all DIMSE message types.
@@ -123,7 +123,7 @@ func (d *messageDecoder) getUInt16(tag dicomtag.Tag, optional isOptionalElement)
 }
 
 // Encode the given elements. The elements are sorted in ascending tag order.
-func encodeElements(e *dicomio.Encoder, elems []*dicom.Element) {
+func encodeElements(w *dicomio.Writer, elems []*dicom.Element) {
 	sort.Slice(elems, func(i, j int) bool {
 		return elems[i].Tag.Compare(elems[j].Tag) < 0
 	})
@@ -235,7 +235,7 @@ func ReadMessage(d *dicomio.Decoder) Message {
 }
 
 // EncodeMessage serializes the given message. Errors are reported through e.Error()
-func EncodeMessage(e *dicomio.Encoder, v Message) {
+func EncodeMessage(w *dicomio.Writer, v Message) {
 	// DIMSE messages are always encoded Implicit+LE. See P3.7 6.3.1.
 	subEncoder := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
 	v.Encode(subEncoder)

@@ -103,7 +103,7 @@ def generate_go_definition(m: Message, out: IO[str]):
     print('}', file=out)
 
     print('', file=out)
-    print(f'func (v *{m.name}) Encode(e *dicomio.Encoder) {{', file=out)
+    print(f'func (v *{m.name}) Encode(w *dicomio.Writer) {{', file=out)
     print('    elems := []*dicom.Element{}', file=out)
     print(f'	elems = append(elems, newElement(dicomtag.CommandField, uint16({m.command_field})))', file=out)
     for f in m.fields:
@@ -201,7 +201,7 @@ package dimse
 import (
 	"fmt"
 
-	"github.com/grailbio/go-dicom"
+	"github.com/suyashkumar/dicom"
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
 )

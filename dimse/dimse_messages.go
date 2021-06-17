@@ -5,9 +5,8 @@ package dimse
 import (
 	"fmt"
 
-	"github.com/grailbio/go-dicom"
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
 )
 
 type CStoreRq struct {
@@ -21,7 +20,7 @@ type CStoreRq struct {
 	Extra                                []*dicom.Element // Unparsed elements
 }
 
-func (v *CStoreRq) Encode(e *dicomio.Encoder) {
+func (v *CStoreRq) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(1)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -81,7 +80,7 @@ type CStoreRsp struct {
 	Extra                     []*dicom.Element // Unparsed elements
 }
 
-func (v *CStoreRsp) Encode(e *dicomio.Encoder) {
+func (v *CStoreRsp) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32769)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -132,7 +131,7 @@ type CFindRq struct {
 	Extra               []*dicom.Element // Unparsed elements
 }
 
-func (v *CFindRq) Encode(e *dicomio.Encoder) {
+func (v *CFindRq) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -181,7 +180,7 @@ type CFindRsp struct {
 	Extra                     []*dicom.Element // Unparsed elements
 }
 
-func (v *CFindRsp) Encode(e *dicomio.Encoder) {
+func (v *CFindRsp) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32800)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -230,7 +229,7 @@ type CGetRq struct {
 	Extra               []*dicom.Element // Unparsed elements
 }
 
-func (v *CGetRq) Encode(e *dicomio.Encoder) {
+func (v *CGetRq) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(16)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -283,7 +282,7 @@ type CGetRsp struct {
 	Extra                          []*dicom.Element // Unparsed elements
 }
 
-func (v *CGetRsp) Encode(e *dicomio.Encoder) {
+func (v *CGetRsp) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32784)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -349,7 +348,7 @@ type CMoveRq struct {
 	Extra               []*dicom.Element // Unparsed elements
 }
 
-func (v *CMoveRq) Encode(e *dicomio.Encoder) {
+func (v *CMoveRq) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(33)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -404,7 +403,7 @@ type CMoveRsp struct {
 	Extra                          []*dicom.Element // Unparsed elements
 }
 
-func (v *CMoveRsp) Encode(e *dicomio.Encoder) {
+func (v *CMoveRsp) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32801)))
 	elems = append(elems, newElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID))
@@ -467,7 +466,7 @@ type CEchoRq struct {
 	Extra              []*dicom.Element // Unparsed elements
 }
 
-func (v *CEchoRq) Encode(e *dicomio.Encoder) {
+func (v *CEchoRq) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(48)))
 	elems = append(elems, newElement(dicomtag.MessageID, v.MessageID))
@@ -511,7 +510,7 @@ type CEchoRsp struct {
 	Extra                     []*dicom.Element // Unparsed elements
 }
 
-func (v *CEchoRsp) Encode(e *dicomio.Encoder) {
+func (v *CEchoRsp) Encode(w *dicomio.Writer) {
 	elems := []*dicom.Element{}
 	elems = append(elems, newElement(dicomtag.CommandField, uint16(32816)))
 	elems = append(elems, newElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo))
