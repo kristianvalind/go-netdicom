@@ -7,6 +7,7 @@ package dimse
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -56,26 +57,20 @@ const (
 	optionalElement
 )
 
-func (d *messageDecoder) setError(err error) {
-	if d.err == nil {
-		d.err = err
-	}
-}
+var (
+	ErrElementNotFound = errors.New("element not found during DIMSE decoding")
+)
 
-// Find an element with the given tag. If optional==OptionalElement, returns nil
-// if not found.  If optional==RequiredElement, sets d.err and return nil if not found.
-func (d *messageDecoder) findElement(tag dicomtag.Tag, optional isOptionalElement) *dicom.Element {
+// Find an element with the given tag. No longer checks requiredness.
+func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
 	for i, elem := range d.elems {
 		if elem.Tag == tag {
 			log.Printf("dimse.findElement: Return %v for %s", elem, tag.String())
 			d.parsed[i] = true
-			return elem
+			return elem, nil
 		}
 	}
-	if optional == requiredElement {
-		d.setError(fmt.Errorf("dimse.findElement: Element %s not found during DIMSE decoding", dicomtag.DebugString(tag)))
-	}
-	return nil
+	return nil, fmt.Errorf("%w: %v", ErrElementNotFound, dicomtag.DebugString(tag))
 }
 
 // Return the list of elements that did not match any of the prior getXXX calls.
@@ -88,40 +83,59 @@ func (d *messageDecoder) unparsedElements() (unparsed []*dicom.Element) {
 	return unparsed
 }
 
-func (d *messageDecoder) getStatus() (s Status) {
-	s.Status = StatusCode(d.getUInt16(dicomtag.Status, requiredElement))
-	s.ErrorComment = d.getString(dicomtag.ErrorComment, optionalElement)
-	return s
+func (d *messageDecoder) getStatus() (Status, error) {
+	s := Status{}
+	uStatus, err := d.getUInt16(dicomtag.Status)
+	if err != nil {
+		return Status{}, err
+	}
+	s.Status = StatusCode(uStatus)
+
+	errorComment, err := d.getString(dicomtag.ErrorComment)
+	if err != nil {
+		// ErrorComment is optional
+		if !errors.Is(err, ErrElementNotFound) {
+			return Status{}, err
+		}
+	}
+	s.ErrorComment = errorComment
+	return s, nil
 }
 
 // Find an element with "tag", and extract a string value from it. Errors are reported in d.err.
-func (d *messageDecoder) getString(tag dicomtag.Tag, optional isOptionalElement) string {
-	e := d.findElement(tag, optional)
-	if e == nil {
-		return ""
-	}
-	v, err := e.GetString()
+func (d *messageDecoder) getString(tag dicomtag.Tag) (string, error) {
+	element, err := d.findElement(tag)
 	if err != nil {
-		d.setError(err)
+		return "", err
 	}
-	return v
+
+	val := element.Value.GetValue()
+	v, ok := val.(string)
+	if !ok {
+		return "", fmt.Errorf("element is not string")
+	}
+
+	return v, nil
 }
 
 // Find an element with "tag", and extract a uint16 from it. Errors are reported in d.err.
-func (d *messageDecoder) getUInt16(tag dicomtag.Tag, optional isOptionalElement) uint16 {
-	e := d.findElement(tag, optional)
-	if e == nil {
-		return 0
-	}
-	v, err := e.GetUInt16()
+func (d *messageDecoder) getUInt16(tag dicomtag.Tag) (uint16, error) {
+	element, err := d.findElement(tag)
 	if err != nil {
-		d.setError(err)
+		return 0, err
 	}
-	return v
+
+	val := element.Value.GetValue()
+	v, ok := val.(uint16)
+	if !ok {
+		return 0, fmt.Errorf("element is not uint16")
+	}
+
+	return v, nil
 }
 
 // Encode the given elements. The elements are sorted in ascending tag order.
-func encodeElements(w *dicomio.Writer, elems []*dicom.Element) {
+func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
 	sort.Slice(elems, func(i, j int) bool {
 		return elems[i].Tag.Compare(elems[j].Tag) < 0
 	})
