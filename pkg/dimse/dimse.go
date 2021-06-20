@@ -1,28 +1,26 @@
+// Package dimse implements message types defined in P3.7.
+// http://dicom.nema.org/medical/dicom/current/output/pdf/part07.pdf
 package dimse
 
 //go:generate ./generate_dimse_messages.py
 //go:generate stringer -type StatusCode
 
-// Implements message types defined in P3.7.
-//
-// http://dicom.nema.org/medical/dicom/current/output/pdf/part07.pdf
-
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"sort"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/kristianvalind/go-netdicom/pdu"
+	"github.com/kristianvalind/go-netdicom/pkg/pdu"
 	dicom "github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
 )
 
 // Message defines the common interface for all DIMSE message types.
 type Message interface {
 	fmt.Stringer // Print human-readable description for debugging.
-	Encode(*dicomio.Encoder)
+	Encode(*dicomio.Writer) error
 	// GetMessageID extracts the message ID field.
 	GetMessageID() MessageID
 	// CommandField returns the command field value of this message.
@@ -69,7 +67,7 @@ func (d *messageDecoder) setError(err error) {
 func (d *messageDecoder) findElement(tag dicomtag.Tag, optional isOptionalElement) *dicom.Element {
 	for i, elem := range d.elems {
 		if elem.Tag == tag {
-			dicomlog.Vprintf(3, "dimse.findElement: Return %v for %s", elem, tag.String())
+			log.Printf("dimse.findElement: Return %v for %s", elem, tag.String())
 			d.parsed[i] = true
 			return elem
 		}
