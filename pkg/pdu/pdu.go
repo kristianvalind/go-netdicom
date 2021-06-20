@@ -1,3 +1,5 @@
+// Package pdu implements message types defined in P3.8. It sits below the DIMSE layer.
+// http://dicom.nema.org/medical/dicom/current/output/pdf/part08.pdf
 package pdu
 
 //go:generate stringer -type AbortReasonType
@@ -7,10 +9,8 @@ package pdu
 //go:generate stringer -type SourceType
 //go:generate stringer -type Type
 
-// Implements message types defined in P3.8. It sits below the DIMSE layer.
-//
-// http://dicom.nema.org/medical/dicom/current/output/pdf/part08.pdf
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -34,12 +34,12 @@ type Type byte
 
 const (
 	TypeAAssociateRq Type = 1 // A_ASSOCIATE_RQ
-	TypeAAssociateAc      = 2 // A_ASSOCIATE_AC
-	TypeAAssociateRj      = 3 // A_ASSOCIATE_RJ
-	TypePDataTf           = 4 // P_DATA_TF
-	TypeAReleaseRq        = 5 // A_RELEASE_RQ
-	TypeAReleaseRp        = 6 // A_RELEASE_RP
-	TypeAAbort            = 7 // A_ABORT
+	TypeAAssociateAc Type = 2 // A_ASSOCIATE_AC
+	TypeAAssociateRj Type = 3 // A_ASSOCIATE_RJ
+	TypePDataTf      Type = 4 // P_DATA_TF
+	TypeAReleaseRq   Type = 5 // A_RELEASE_RQ
+	TypeAReleaseRp   Type = 6 // A_RELEASE_RP
+	TypeAAbort       Type = 7 // A_ABORT
 )
 
 // SubItem is the interface for DUL items, such as ApplicationContextItem and
@@ -103,7 +103,7 @@ func decodeSubItem(r dicomio.Reader) (SubItem, error) {
 	case ItemTypeImplementationVersionName:
 		return decodeImplementationVersionNameSubItem(r, length)
 	default:
-		return nil, fmt.Errorf("Unknown item type: 0x%x", itemType)
+		return nil, fmt.Errorf("unknown item type: 0x%x", itemType)
 	}
 }
 
@@ -125,7 +125,7 @@ func encodeSubItemHeader(w *dicomio.Writer, itemType byte, length uint16) error 
 	return nil
 }
 
-// P3.8 9.3.2.3
+// UserInformationItem contains data according to P3.8 9.3.2.3
 type UserInformationItem struct {
 	Items []SubItem // P3.8, Annex D.
 }
@@ -175,7 +175,7 @@ func (v *UserInformationItem) String() string {
 		subItemListString(v.Items))
 }
 
-// P3.8 D.1
+// UserInformationMaximumLengthItem contains data according to P3.8 D.1
 type UserInformationMaximumLengthItem struct {
 	MaximumLengthReceived uint32
 }
@@ -209,7 +209,7 @@ func (v *UserInformationMaximumLengthItem) String() string {
 		v.MaximumLengthReceived)
 }
 
-// PS3.7 Annex D.3.3.2.1
+// ImplementationClassUIDSubItem implements PS3.7 Annex D.3.3.2.1
 type ImplementationClassUIDSubItem subItemWithName
 
 func decodeImplementationClassUIDSubItem(r dicomio.Reader, length uint16) (*ImplementationClassUIDSubItem, error) {
@@ -232,7 +232,7 @@ func (v *ImplementationClassUIDSubItem) String() string {
 	return fmt.Sprintf("ImplementationClassUID{name: \"%s\"}", v.Name)
 }
 
-// PS3.7 Annex D.3.3.3.1
+// AsynchronousOperationsWindowSubItem implements PS3.7 Annex D.3.3.3.1
 type AsynchronousOperationsWindowSubItem struct {
 	MaxOpsInvoked   uint16
 	MaxOpsPerformed uint16
@@ -279,7 +279,7 @@ func (v *AsynchronousOperationsWindowSubItem) String() string {
 		v.MaxOpsInvoked, v.MaxOpsPerformed)
 }
 
-// PS3.7 Annex D.3.3.4
+// RoleSelectionSubItem implements PS3.7 Annex D.3.3.4
 type RoleSelectionSubItem struct {
 	SOPClassUID string
 	SCURole     byte
@@ -347,7 +347,7 @@ func (v *RoleSelectionSubItem) String() string {
 	return fmt.Sprintf("RoleSelection{sopclassuid: %v, scu: %v, scp: %v}", v.SOPClassUID, v.SCURole, v.SCPRole)
 }
 
-// PS3.7 Annex D.3.3.2.3
+// ImplementationVersionNameSubItem implements PS3.7 Annex D.3.3.2.3
 type ImplementationVersionNameSubItem subItemWithName
 
 func decodeImplementationVersionNameSubItem(r dicomio.Reader, length uint16) (*ImplementationVersionNameSubItem, error) {
@@ -371,7 +371,7 @@ func (v *ImplementationVersionNameSubItem) String() string {
 	return fmt.Sprintf("ImplementationVersionName{name: \"%s\"}", v.Name)
 }
 
-// Container for subitems that this package doesnt' support
+// SubItemUnsupported is a container for subitems that this package doesnt' support
 type SubItemUnsupported struct {
 	Type byte
 	Data []byte
@@ -423,7 +423,7 @@ func decodeSubItemWithName(r dicomio.Reader, length uint16) (string, error) {
 
 type ApplicationContextItem subItemWithName
 
-// The app context for DICOM. The first item in the A-ASSOCIATE-RQ
+// DICOMApplicationContextItemName is the app context for DICOM. The first item in the A-ASSOCIATE-RQ
 const DICOMApplicationContextItemName = "1.2.840.10008.3.1.1.1"
 
 func decodeApplicationContextItem(r dicomio.Reader, length uint16) (*ApplicationContextItem, error) {
@@ -494,7 +494,7 @@ func (v *TransferSyntaxSubItem) String() string {
 	return fmt.Sprintf("TransferSyntax{name: \"%s\"}", v.Name)
 }
 
-// Result of abstractsyntax/transfersyntax handshake during A-ACCEPT.  P3.8,
+// PresentationContextResult contains the result of abstractsyntax/transfersyntax handshake during A-ACCEPT.  P3.8,
 // 90.3.3.2, table 9-18.
 type PresentationContextResult byte
 
@@ -506,7 +506,7 @@ const (
 	PresentationContextProviderRejectionTransferSyntaxNotSupported PresentationContextResult = 4
 )
 
-// P3.8 9.3.2.2, 9.3.3.2
+// PresentationContextItem implements P3.8 9.3.2.2, 9.3.3.2
 type PresentationContextItem struct {
 	Type      byte // ItemTypePresentationContext*
 	ContextID byte
@@ -611,7 +611,7 @@ func (v *PresentationContextItem) String() string {
 		itemType, v.ContextID, v.Result, subItemListString(v.Items))
 }
 
-// P3.8 9.3.2.2.1 & 9.3.2.2.2
+// PresentationDataValueItem implements P3.8 9.3.2.2.1 & 9.3.2.2.2
 type PresentationDataValueItem struct {
 	// Length: 2 + len(Value)
 	ContextID byte
@@ -726,67 +726,79 @@ func EncodePDU(pdu PDU) ([]byte, error) {
 	return append(header[:], payload...), nil
 }
 
-// EncodePDU reads a "pdu" from a stream. maxPDUSize defines the maximum
+// ReadPDU reads a "pdu" from a stream. maxPDUSize defines the maximum
 // possible PDU size, in bytes, accepted by the caller.
 func ReadPDU(in io.Reader, maxPDUSize int) (PDU, error) {
 	var pduType Type
 	var skip byte
 	var length uint32
+
 	err := binary.Read(in, binary.BigEndian, &pduType)
 	if err != nil {
 		return nil, err
 	}
+
 	err = binary.Read(in, binary.BigEndian, &skip)
 	if err != nil {
 		return nil, err
 	}
+
 	err = binary.Read(in, binary.BigEndian, &length)
 	if err != nil {
 		return nil, err
 	}
+
 	if length >= uint32(maxPDUSize)*2 {
 		// Avoid using too much memory. *2 is just an arbitrary slack.
-		return nil, fmt.Errorf("Invalid length %d; it's much larger than max PDU size of %d", length, maxPDUSize)
+		return nil, fmt.Errorf("invalid length %d; it's much larger than max PDU size of %d", length, maxPDUSize)
 	}
 
-	d := dicomio.NewDecoder(
-		&io.LimitedReader{R: in, N: int64(length)},
-		binary.BigEndian,  // PDU is always big endian
-		dicomio.UnknownVR) // irrelevant for PDU parsing
+	bufReader := bufio.NewReader(in)
+	r, err := dicomio.NewReader(bufReader,
+		binary.BigEndian, // PDU is always big endian
+		int64(length),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	var pdu PDU
 	switch pduType {
 	case TypeAAssociateRq:
 		fallthrough
 	case TypeAAssociateAc:
-		pdu, err = decodeAAssociate(d, pduType)
+		pdu, err = decodeAAssociate(r, pduType)
 		if err != nil {
 			return nil, err
 		}
 	case TypeAAssociateRj:
-		pdu, err = decodeAAssociateRj(d)
+		pdu, err = decodeAAssociateRj(r)
 		if err != nil {
 			return nil, err
 		}
 	case TypeAAbort:
-		pdu, err = decodeAAbort(d)
+		pdu, err = decodeAAbort(r)
 		if err != nil {
 			return nil, err
 		}
 	case TypePDataTf:
-		pdu, err = decodePDataTf(d)
+		pdu, err = decodePDataTf(r)
 		if err != nil {
 			return nil, err
 		}
 	case TypeAReleaseRq:
-		pdu = decodeAReleaseRq(d)
+		pdu, err = decodeAReleaseRq(r)
+		if err != nil {
+			return nil, err
+		}
 	case TypeAReleaseRp:
-		pdu = decodeAReleaseRp(d)
+		pdu, err = decodeAReleaseRp(r)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if pdu == nil {
 		err := fmt.Errorf("ReadPDU: unknown message type %d", pduType)
-		return nil, err
-	}
-	if err := d.Finish(); err != nil {
 		return nil, err
 	}
 	return pdu, nil
@@ -795,14 +807,22 @@ func ReadPDU(in io.Reader, maxPDUSize int) (PDU, error) {
 type AReleaseRq struct {
 }
 
-func decodeAReleaseRq(r dicomio.Reader) *AReleaseRq {
+func decodeAReleaseRq(r dicomio.Reader) (*AReleaseRq, error) {
 	pdu := &AReleaseRq{}
-	r.Skip(4)
-	return pdu
+	err := r.Skip(4)
+	if err != nil {
+		return nil, err
+	}
+
+	return pdu, nil
 }
 
 func (pdu *AReleaseRq) WritePayload(w *dicomio.Writer) error {
-	w.WriteZeros(4)
+	err := w.WriteZeros(4)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (pdu *AReleaseRq) String() string {
@@ -812,14 +832,23 @@ func (pdu *AReleaseRq) String() string {
 type AReleaseRp struct {
 }
 
-func decodeAReleaseRp(r dicomio.Reader) *AReleaseRp {
+func decodeAReleaseRp(r dicomio.Reader) (*AReleaseRp, error) {
 	pdu := &AReleaseRp{}
-	r.Skip(4)
-	return pdu
+	err := r.Skip(4)
+	if err != nil {
+		return nil, err
+	}
+
+	return pdu, nil
 }
 
 func (pdu *AReleaseRp) WritePayload(w *dicomio.Writer) error {
-	w.WriteZeros(4)
+	err := w.WriteZeros(4)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pdu *AReleaseRp) String() string {
@@ -841,7 +870,7 @@ func subItemListString(items []SubItem) string {
 
 const CurrentProtocolVersion uint16 = 1
 
-// Defines A_ASSOCIATE_{RQ,AC}. P3.8 9.3.2 and 9.3.3
+// AAssociate defines A_ASSOCIATE_{RQ,AC}. P3.8 9.3.2 and 9.3.3
 type AAssociate struct {
 	Type            Type // One of {TypeA_Associate_RQ,TypeA_Associate_AC}
 	ProtocolVersion uint16
@@ -886,14 +915,40 @@ func (pdu *AAssociate) WritePayload(w *dicomio.Writer) error {
 	if pdu.Type == 0 || pdu.CalledAETitle == "" || pdu.CallingAETitle == "" {
 		panic(*pdu)
 	}
-	w.WriteUInt16(pdu.ProtocolVersion)
-	w.WriteZeros(2) // Reserved
-	w.WriteString(fillString(pdu.CalledAETitle, 16))
-	w.WriteString(fillString(pdu.CallingAETitle, 16))
-	w.WriteZeros(8 * 4)
-	for _, item := range pdu.Items {
-		item.Write(w)
+
+	err := w.WriteUInt16(pdu.ProtocolVersion)
+	if err != nil {
+		return err
 	}
+
+	err = w.WriteZeros(2) // Reserved
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteString(fillString(pdu.CalledAETitle, 16))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteString(fillString(pdu.CallingAETitle, 16))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteZeros(8 * 4)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range pdu.Items {
+		err = item.Write(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (pdu *AAssociate) String() string {
@@ -906,14 +961,14 @@ func (pdu *AAssociate) String() string {
 		pdu.CalledAETitle, pdu.CallingAETitle, subItemListString(pdu.Items))
 }
 
-// P3.8 9.3.4
+// AAssociateRj implements P3.8 9.3.4
 type AAssociateRj struct {
 	Result RejectResultType
 	Source SourceType
 	Reason RejectReasonType
 }
 
-// Possible values for AAssociateRj.Result
+// RejectResultType contains possible values for AAssociateRj.Result
 type RejectResultType byte
 
 const (
@@ -921,7 +976,7 @@ const (
 	ResultRejectedTransient RejectResultType = 2
 )
 
-// Possible values for AAssociateRj.Reason
+// RejectReasonType contains possible values for AAssociateRj.Reason
 type RejectReasonType byte
 
 const (
@@ -931,7 +986,7 @@ const (
 	RejectReasonCalledAETitleNotRecognized         RejectReasonType = 7
 )
 
-// Possible values for AAssociateRj.Source
+// SourceType contains possible values for AAssociateRj.Source
 type SourceType byte
 
 const (
@@ -964,10 +1019,27 @@ func decodeAAssociateRj(r dicomio.Reader) (*AAssociateRj, error) {
 }
 
 func (pdu *AAssociateRj) WritePayload(w *dicomio.Writer) error {
-	w.WriteZeros(1)
-	w.WriteByte(byte(pdu.Result))
-	w.WriteByte(byte(pdu.Source))
-	w.WriteByte(byte(pdu.Reason))
+	err := w.WriteZeros(1)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(byte(pdu.Result))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(byte(pdu.Source))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(byte(pdu.Reason))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pdu *AAssociateRj) String() string {
@@ -1056,7 +1128,7 @@ func (pdu *PDataTf) WritePayload(w *dicomio.Writer) error {
 
 func (pdu *PDataTf) String() string {
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("P_DATA_TF{items: ["))
+	buf.WriteString("P_DATA_TF{items: [")
 	for i, item := range pdu.Items {
 		if i > 0 {
 			buf.WriteString("\n")

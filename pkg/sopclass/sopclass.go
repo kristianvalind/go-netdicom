@@ -1,3 +1,4 @@
+// Package sopclass contains SOP classes relevant for DICOM network communication
 package sopclass
 
 import (
