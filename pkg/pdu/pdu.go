@@ -131,7 +131,7 @@ type UserInformationItem struct {
 }
 
 func (v *UserInformationItem) Write(w *dicomio.Writer) error {
-	buf := bytes.NewBuffer(nil)
+	buf := &bytes.Buffer{}
 	itemEncoder := dicomio.NewWriter(buf, binary.BigEndian, false)
 	for _, s := range v.Items {
 		err := s.Write(&itemEncoder)
@@ -140,16 +140,25 @@ func (v *UserInformationItem) Write(w *dicomio.Writer) error {
 		}
 	}
 	itemBytes := buf.Bytes()
-	encodeSubItemHeader(w, ItemTypeUserInformation, uint16(len(itemBytes)))
-	w.WriteBytes(itemBytes)
+	err := encodeSubItemHeader(w, ItemTypeUserInformation, uint16(len(itemBytes)))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteBytes(itemBytes)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func decodeUserInformationItem(r dicomio.Reader, length uint16) (*UserInformationItem, error) {
 	v := &UserInformationItem{}
-	var err error
-	r.PushLimit(int64(length))
+	err := r.PushLimit(int64(length))
+	if err != nil {
+		return nil, err
+	}
 	defer r.PopLimit()
 	for !r.IsLimitExhausted() {
 		item, err := decodeSubItem(r)
@@ -158,7 +167,7 @@ func decodeUserInformationItem(r dicomio.Reader, length uint16) (*UserInformatio
 		}
 		v.Items = append(v.Items, item)
 	}
-	return v, err
+	return v, nil
 }
 
 func (v *UserInformationItem) String() string {
@@ -172,8 +181,14 @@ type UserInformationMaximumLengthItem struct {
 }
 
 func (v *UserInformationMaximumLengthItem) Write(w *dicomio.Writer) error {
-	encodeSubItemHeader(w, ItemTypeUserInformationMaximumLength, 4)
-	w.WriteUInt32(v.MaximumLengthReceived)
+	err := encodeSubItemHeader(w, ItemTypeUserInformationMaximumLength, 4)
+	if err != nil {
+		return err
+	}
+	err = w.WriteUInt32(v.MaximumLengthReceived)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -206,7 +221,10 @@ func decodeImplementationClassUIDSubItem(r dicomio.Reader, length uint16) (*Impl
 }
 
 func (v *ImplementationClassUIDSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemWithName(w, ItemTypeImplementationClassUID, v.Name)
+	err := encodeSubItemWithName(w, ItemTypeImplementationClassUID, v.Name)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -230,6 +248,7 @@ func decodeAsynchronousOperationsWindowSubItem(r dicomio.Reader, length uint16) 
 	if err != nil {
 		return nil, err
 	}
+
 	return &AsynchronousOperationsWindowSubItem{
 		MaxOpsInvoked:   maxOpsInvoked,
 		MaxOpsPerformed: maxOpsPerformed,
@@ -237,9 +256,21 @@ func decodeAsynchronousOperationsWindowSubItem(r dicomio.Reader, length uint16) 
 }
 
 func (v *AsynchronousOperationsWindowSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemHeader(w, ItemTypeAsynchronousOperationsWindow, 2*2)
-	w.WriteUInt16(v.MaxOpsInvoked)
-	w.WriteUInt16(v.MaxOpsPerformed)
+	err := encodeSubItemHeader(w, ItemTypeAsynchronousOperationsWindow, 2*2)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteUInt16(v.MaxOpsInvoked)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteUInt16(v.MaxOpsPerformed)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -260,6 +291,7 @@ func decodeRoleSelectionSubItem(r dicomio.Reader, length uint16) (*RoleSelection
 	if err != nil {
 		return nil, err
 	}
+
 	sopClassUID, err := r.ReadString(uint32(uidLen))
 	if err != nil {
 		return nil, err
@@ -274,6 +306,7 @@ func decodeRoleSelectionSubItem(r dicomio.Reader, length uint16) (*RoleSelection
 	if err != nil {
 		return nil, err
 	}
+
 	return &RoleSelectionSubItem{
 		SOPClassUID: sopClassUID,
 		SCURole:     scuRole,
@@ -282,11 +315,31 @@ func decodeRoleSelectionSubItem(r dicomio.Reader, length uint16) (*RoleSelection
 }
 
 func (v *RoleSelectionSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemHeader(w, ItemTypeRoleSelection, uint16(2+len(v.SOPClassUID)+1*2))
-	w.WriteUInt16(uint16(len(v.SOPClassUID)))
-	w.WriteString(v.SOPClassUID)
-	w.WriteByte(v.SCURole)
-	w.WriteByte(v.SCPRole)
+	err := encodeSubItemHeader(w, ItemTypeRoleSelection, uint16(2+len(v.SOPClassUID)+1*2))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteUInt16(uint16(len(v.SOPClassUID)))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteString(v.SOPClassUID)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(v.SCURole)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(v.SCPRole)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -306,7 +359,11 @@ func decodeImplementationVersionNameSubItem(r dicomio.Reader, length uint16) (*I
 }
 
 func (v *ImplementationVersionNameSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemWithName(w, ItemTypeImplementationVersionName, v.Name)
+	err := encodeSubItemWithName(w, ItemTypeImplementationVersionName, v.Name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -321,9 +378,17 @@ type SubItemUnsupported struct {
 }
 
 func (item *SubItemUnsupported) Write(w *dicomio.Writer) error {
-	encodeSubItemHeader(w, item.Type, uint16(len(item.Data)))
+	err := encodeSubItemHeader(w, item.Type, uint16(len(item.Data)))
+	if err != nil {
+		return err
+	}
+
 	// TODO: handle unicode properly
-	w.WriteBytes(item.Data)
+	err = w.WriteBytes(item.Data)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -337,10 +402,19 @@ type subItemWithName struct {
 	Name string
 }
 
-func encodeSubItemWithName(w *dicomio.Writer, itemType byte, name string) {
-	encodeSubItemHeader(w, itemType, uint16(len(name)))
+func encodeSubItemWithName(w *dicomio.Writer, itemType byte, name string) error {
+	err := encodeSubItemHeader(w, itemType, uint16(len(name)))
+	if err != nil {
+		return err
+	}
+
 	// TODO: handle unicode properly
-	w.WriteBytes([]byte(name))
+	err = w.WriteBytes([]byte(name))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func decodeSubItemWithName(r dicomio.Reader, length uint16) (string, error) {
@@ -357,11 +431,16 @@ func decodeApplicationContextItem(r dicomio.Reader, length uint16) (*Application
 	if err != nil {
 		return nil, err
 	}
+
 	return &ApplicationContextItem{Name: subItemWithName}, nil
 }
 
 func (v *ApplicationContextItem) Write(w *dicomio.Writer) error {
-	encodeSubItemWithName(w, ItemTypeApplicationContext, v.Name)
+	err := encodeSubItemWithName(w, ItemTypeApplicationContext, v.Name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -380,7 +459,11 @@ func decodeAbstractSyntaxSubItem(r dicomio.Reader, length uint16) (*AbstractSynt
 }
 
 func (v *AbstractSyntaxSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemWithName(w, ItemTypeAbstractSyntax, v.Name)
+	err := encodeSubItemWithName(w, ItemTypeAbstractSyntax, v.Name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -399,7 +482,12 @@ func decodeTransferSyntaxSubItem(r dicomio.Reader, length uint16) (*TransferSynt
 }
 
 func (v *TransferSyntaxSubItem) Write(w *dicomio.Writer) error {
-	encodeSubItemWithName(w, ItemTypeTransferSyntax, v.Name)
+	err := encodeSubItemWithName(w, ItemTypeTransferSyntax, v.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v *TransferSyntaxSubItem) String() string {
@@ -433,20 +521,33 @@ type PresentationContextItem struct {
 
 func decodePresentationContextItem(r dicomio.Reader, itemType byte, length uint16) (*PresentationContextItem, error) {
 	v := &PresentationContextItem{Type: itemType}
-	r.PushLimit(int64(length))
+	err := r.PushLimit(int64(length))
+	if err != nil {
+		return nil, err
+	}
 	defer r.PopLimit()
-	var err error
+
 	v.ContextID, err = r.ReadUInt8()
 	if err != nil {
 		return nil, err
 	}
-	r.Skip(1)
+
+	err = r.Skip(1)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := r.ReadUInt8()
 	if err != nil {
 		return nil, err
 	}
 	v.Result = PresentationContextResult(result)
-	r.Skip(1)
+
+	err = r.Skip(1)
+	if err != nil {
+		return nil, err
+	}
+
 	for !r.IsLimitExhausted() {
 		item, err := decodeSubItem(r)
 		if err != nil {
@@ -454,9 +555,11 @@ func decodePresentationContextItem(r dicomio.Reader, itemType byte, length uint1
 		}
 		v.Items = append(v.Items, item)
 	}
+
 	if v.ContextID%2 != 1 {
 		return nil, fmt.Errorf("PresentationContextItem ID must be odd, but found %x", v.ContextID)
 	}
+
 	return v, nil
 }
 
@@ -466,19 +569,37 @@ func (v *PresentationContextItem) Write(w *dicomio.Writer) error {
 		panic(*v)
 	}
 
-	itemEncoder := dicomio.NewBytesEncoder(binary.BigEndian, dicomio.UnknownVR)
+	buf := &bytes.Buffer{}
+	itemEncoder := dicomio.NewWriter(buf, binary.BigEndian, false)
 	for _, s := range v.Items {
-		s.Write(itemEncoder)
+		err := s.Write(&itemEncoder)
+		if err != nil {
+			return err
+		}
 	}
-	if err := itemEncoder.Error(); err != nil {
-		e.SetError(err)
-		return
+
+	itemBytes := buf.Bytes()
+	err := encodeSubItemHeader(w, v.Type, uint16(4+len(itemBytes)))
+	if err != nil {
+		return err
 	}
-	itemBytes := itemEncoder.Bytes()
-	encodeSubItemHeader(w, v.Type, uint16(4+len(itemBytes)))
-	w.WriteByte(v.ContextID)
-	w.WriteZeros(3)
-	w.WriteBytes(itemBytes)
+
+	err = w.WriteByte(v.ContextID)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteZeros(3)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteBytes(itemBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v *PresentationContextItem) String() string {
@@ -509,14 +630,17 @@ func ReadPresentationDataValueItem(r dicomio.Reader) (PresentationDataValueItem,
 	if err != nil {
 		return PresentationDataValueItem{}, err
 	}
+
 	item.ContextID, err = r.ReadUInt8()
 	if err != nil {
 		return PresentationDataValueItem{}, err
 	}
+
 	header, err := r.ReadUInt8()
 	if err != nil {
 		return PresentationDataValueItem{}, err
 	}
+
 	item.Command = (header&1 != 0)
 	item.Last = (header&2 != 0)
 
@@ -538,10 +662,28 @@ func (v *PresentationDataValueItem) Write(w *dicomio.Writer) error {
 	if v.Last {
 		header |= 2
 	}
-	w.WriteUInt32(uint32(2 + len(v.Value)))
-	w.WriteByte(v.ContextID)
-	w.WriteByte(header)
-	w.WriteBytes(v.Value)
+
+	err := w.WriteUInt32(uint32(2 + len(v.Value)))
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(v.ContextID)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteByte(header)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteBytes(v.Value)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v *PresentationDataValueItem) String() string {
@@ -567,12 +709,15 @@ func EncodePDU(pdu PDU) ([]byte, error) {
 	default:
 		panic(fmt.Sprintf("Unknown PDU %v", pdu))
 	}
-	e := dicomio.NewBytesEncoder(binary.BigEndian, dicomio.UnknownVR)
-	pdu.WritePayload(e)
-	if err := e.Error(); err != nil {
+
+	buf := &bytes.Buffer{}
+	e := dicomio.NewWriter(buf, binary.BigEndian, false)
+
+	err := pdu.WritePayload(&e)
+	if err != nil {
 		return nil, err
 	}
-	payload := e.Bytes()
+	payload := buf.Bytes()
 	// Reserve the header bytes. It will be filled in Finish.
 	var header [6]byte // First 6 bytes of buf.
 	header[0] = byte(pduType)
@@ -603,6 +748,7 @@ func ReadPDU(in io.Reader, maxPDUSize int) (PDU, error) {
 		// Avoid using too much memory. *2 is just an arbitrary slack.
 		return nil, fmt.Errorf("Invalid length %d; it's much larger than max PDU size of %d", length, maxPDUSize)
 	}
+
 	d := dicomio.NewDecoder(
 		&io.LimitedReader{R: in, N: int64(length)},
 		binary.BigEndian,  // PDU is always big endian
