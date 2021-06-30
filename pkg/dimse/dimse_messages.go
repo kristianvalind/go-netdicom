@@ -30,7 +30,7 @@ func (v *CStoreRq) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -148,7 +148,7 @@ func (v *CStoreRsp) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -239,7 +239,7 @@ func (v *CFindRq) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -321,7 +321,7 @@ func (v *CFindRsp) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -403,7 +403,7 @@ func (v *CGetRq) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -489,7 +489,7 @@ func (v *CGetRsp) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -624,7 +624,7 @@ func (v *CMoveRq) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -719,7 +719,7 @@ func (v *CMoveRsp) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
     if err != nil {
         return err
@@ -851,7 +851,7 @@ func (v *CEchoRq) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
     if err != nil {
         return err
@@ -914,7 +914,7 @@ func (v *CEchoRsp) Encode(w *dicomio.Writer) error {
     if err != nil {
         return err
     }
-	elems = append(elems, elem)
+    elems = append(elems, elem)
     elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
     if err != nil {
         return err

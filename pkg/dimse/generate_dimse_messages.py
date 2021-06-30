@@ -109,7 +109,7 @@ def generate_go_definition(m: Message, out: IO[str]):
     print('    if err != nil {', file=out)
     print('        return err', file=out)
     print('    }', file=out)
-    print(f'	elems = append(elems, elem)', file=out)
+    print(f'    elems = append(elems, elem)', file=out)
     for f in m.fields:
         if not f.required:
             if f.type == 'string':
