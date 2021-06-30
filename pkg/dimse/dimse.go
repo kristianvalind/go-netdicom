@@ -6,6 +6,7 @@ package dimse
 //go:generate stringer -type StatusCode
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -21,7 +22,7 @@ import (
 // Message defines the common interface for all DIMSE message types.
 type Message interface {
 	fmt.Stringer // Print human-readable description for debugging.
-	Encode(*dicom.Writer) error
+	Encode(*dicomio.Writer) error
 	// GetMessageID extracts the message ID field.
 	GetMessageID() MessageID
 	// CommandField returns the command field value of this message.
@@ -131,12 +132,13 @@ func (d *messageDecoder) getUInt16(tag dicomtag.Tag) (uint16, error) {
 }
 
 // Encode the given elements. The elements are sorted in ascending tag order.
-func encodeElements(w *dicom.Writer, elems []*dicom.Element) error {
+func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
 	sort.Slice(elems, func(i, j int) bool {
 		return elems[i].Tag.Compare(elems[j].Tag) < 0
 	})
+	elementWriter := dicom.NewWriter(w, dicom.DefaultMissingTransferSyntax())
 	for _, elem := range elems {
-		err := w.WriteElement(elem)
+		err := elementWriter.WriteElement(elem)
 		if err != nil {
 			return err
 		}
@@ -252,20 +254,35 @@ func ReadMessage(r dicomio.Reader) (Message, error) {
 	return v, nil
 }
 
-// EncodeMessage serializes the given message. Errors are reported through e.Error()
-func EncodeMessage(w *dicom.Writer, v Message) {
+// EncodeMessage serializes the given message.
+func EncodeMessage(w *dicomio.Writer, v Message) error {
+	buf := &bytes.Buffer{}
 	// DIMSE messages are always encoded Implicit+LE. See P3.7 6.3.1.
-	subEncoder := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
-	v.Encode(subEncoder)
-	if err := subEncoder.Error(); err != nil {
-		e.SetError(err)
-		return
+	subWriter := dicomio.NewWriter(buf, binary.LittleEndian, true)
+	err := v.Encode(&subWriter)
+	if err != nil {
+		return err
 	}
-	bytes := subEncoder.Bytes()
-	e.PushTransferSyntax(binary.LittleEndian, dicomio.ImplicitVR)
-	defer e.PopTransferSyntax()
-	dicom.WriteElement(e, newElement(dicomtag.CommandGroupLength, uint32(len(bytes))))
-	e.WriteBytes(bytes)
+
+	bufLen := buf.Bytes()
+
+	elementWriter := dicom.NewWriter(w, dicom.DefaultMissingTransferSyntax())
+	element, err := dicom.NewElement(dicomtag.CommandGroupLength, uint32(len(bufLen)))
+	if err != nil {
+		return err
+	}
+
+	err = elementWriter.WriteElement(elementWriter, element)
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteBytes(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CommandAssembler is a helper that assembles a DIMSE command message and data

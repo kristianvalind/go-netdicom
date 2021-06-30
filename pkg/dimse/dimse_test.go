@@ -1,17 +1,19 @@
 package dimse_test
 
 import (
+	"bytes"
 	"encoding/binary"
 	"testing"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
 )
 
 func testDIMSE(t *testing.T, v dimse.Message) {
-	e := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
-	dimse.EncodeMessage(e, v)
-	bytes := e.Bytes()
+	b := &bytes.Buffer{}
+	w := dicomio.NewWriter(b, binary.LittleEndian, true)
+	dimse.EncodeMessage(&w, v)
+	bytes := b.Bytes()
 	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
 	v2 := dimse.ReadMessage(d)
 	err := d.Finish()
