@@ -21,7 +21,7 @@ import (
 // Message defines the common interface for all DIMSE message types.
 type Message interface {
 	fmt.Stringer // Print human-readable description for debugging.
-	Encode(*dicomio.Writer) error
+	Encode(*dicom.Writer) error
 	// GetMessageID extracts the message ID field.
 	GetMessageID() MessageID
 	// CommandField returns the command field value of this message.
@@ -57,10 +57,6 @@ const (
 	optionalElement
 )
 
-var (
-	ErrElementNotFound = errors.New("element not found during DIMSE decoding")
-)
-
 // Find an element with the given tag. No longer checks requiredness.
 func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
 	for i, elem := range d.elems {
@@ -70,7 +66,7 @@ func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
 			return elem, nil
 		}
 	}
-	return nil, fmt.Errorf("%w: %v", ErrElementNotFound, dicomtag.DebugString(tag))
+	return nil, fmt.Errorf("%w: %v", dicom.ErrorElementNotFound, dicomtag.DebugString(tag))
 }
 
 // Return the list of elements that did not match any of the prior getXXX calls.
@@ -94,7 +90,7 @@ func (d *messageDecoder) getStatus() (Status, error) {
 	errorComment, err := d.getString(dicomtag.ErrorComment)
 	if err != nil {
 		// ErrorComment is optional
-		if !errors.Is(err, ErrElementNotFound) {
+		if !errors.Is(err, dicom.ErrorElementNotFound) {
 			return Status{}, err
 		}
 	}
@@ -135,33 +131,38 @@ func (d *messageDecoder) getUInt16(tag dicomtag.Tag) (uint16, error) {
 }
 
 // Encode the given elements. The elements are sorted in ascending tag order.
-func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
+func encodeElements(w *dicom.Writer, elems []*dicom.Element) error {
 	sort.Slice(elems, func(i, j int) bool {
 		return elems[i].Tag.Compare(elems[j].Tag) < 0
 	})
 	for _, elem := range elems {
-		dicom.WriteElement(e, elem)
+		err := w.WriteElement(elem)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Create a list of elements that represent the dimse status. The list contains
 // multiple elements for non-ok status.
-func newStatusElements(s Status) []*dicom.Element {
-	elems := []*dicom.Element{newElement(dicomtag.Status, uint16(s.Status))}
-	if s.ErrorComment != "" {
-		elems = append(elems, newElement(dicomtag.ErrorComment, s.ErrorComment))
+func newStatusElements(s Status) ([]*dicom.Element, error) {
+	statusElement, err := dicom.NewElement(dicomtag.Status, uint16(s.Status))
+	if err != nil {
+		return nil, err
 	}
-	return elems
-}
 
-// Create a new element. The value type must match the tag's.
-func newElement(tag dicomtag.Tag, v interface{}) *dicom.Element {
-	return &dicom.Element{
-		Tag:             tag,
-		VR:              "", // autodetect
-		UndefinedLength: false,
-		Value:           []interface{}{v},
+	elems := []*dicom.Element{statusElement}
+	if s.ErrorComment != "" {
+		commentElement, err := dicom.NewElement(dicomtag.ErrorComment, s.ErrorComment)
+		if err != nil {
+			return nil, err
+		}
+		elems = append(elems, commentElement)
 	}
+
+	return elems, nil
 }
 
 // CommandDataSetTypeNull indicates that the DIMSE message has no data payload,
@@ -211,18 +212,24 @@ const (
 
 // ReadMessage constructs a typed dimse.Message object, given a set of
 // dicom.Elements,
-func ReadMessage(d *dicomio.Decoder) Message {
+func ReadMessage(r dicomio.Reader) (Message, error) {
 	// A DIMSE message is a sequence of Elements, encoded in implicit
 	// LE.
 	//
-	// TODO(saito) make sure that's the case. Where the ref?
+
+	p, err := dicom.NewParser(r, r.BytesLeftUntilLimit(), nil)
+	if err != nil {
+		return nil, err
+	}
 	var elems []*dicom.Element
-	d.PushTransferSyntax(binary.LittleEndian, dicomio.ImplicitVR)
-	defer d.PopTransferSyntax()
-	for !d.EOF() {
-		elem := dicom.ReadElement(d, dicom.ReadOptions{})
-		if d.Error() != nil {
-			break
+	for {
+		elem, err := p.Next()
+		if err != nil {
+			if !errors.Is(err, dicom.ErrorEndOfDICOM) {
+				return nil, err
+			} else {
+				break
+			}
 		}
 		elems = append(elems, elem)
 	}
@@ -233,21 +240,20 @@ func ReadMessage(d *dicomio.Decoder) Message {
 		parsed: make([]bool, len(elems)),
 		err:    nil,
 	}
-	commandField := dd.getUInt16(dicomtag.CommandField, requiredElement)
-	if dd.err != nil {
-		d.SetError(dd.err)
-		return nil
+	commandField, err := dd.getUInt16(dicomtag.CommandField)
+	if err != nil {
+		return nil, err
 	}
-	v := decodeMessageForType(&dd, commandField)
-	if dd.err != nil {
-		d.SetError(dd.err)
-		return nil
+
+	v, err := decodeMessageForType(&dd, commandField)
+	if err != nil {
+		return nil, err
 	}
-	return v
+	return v, nil
 }
 
 // EncodeMessage serializes the given message. Errors are reported through e.Error()
-func EncodeMessage(w *dicomio.Writer, v Message) {
+func EncodeMessage(w *dicom.Writer, v Message) {
 	// DIMSE messages are always encoded Implicit+LE. See P3.7 6.3.1.
 	subEncoder := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
 	v.Encode(subEncoder)

@@ -103,9 +103,13 @@ def generate_go_definition(m: Message, out: IO[str]):
     print('}', file=out)
 
     print('', file=out)
-    print(f'func (v *{m.name}) Encode(w *dicomio.Writer) {{', file=out)
+    print(f'func (v *{m.name}) Encode(w *dicomio.Writer) error {{', file=out)
     print('    elems := []*dicom.Element{}', file=out)
-    print(f'	elems = append(elems, newElement(dicomtag.CommandField, uint16({m.command_field})))', file=out)
+    print(f'    elem, err := dicom.NewElement(dicomtag.CommandField, uint16({m.command_field}))', file=out)
+    print('    if err != nil {', file=out)
+    print('        return err', file=out)
+    print('    }', file=out)
+    print(f'	elems = append(elems, elem)', file=out)
     for f in m.fields:
         if not f.required:
             if f.type == 'string':
@@ -113,14 +117,26 @@ def generate_go_definition(m: Message, out: IO[str]):
             else:
                 zero = '0'
             print(f'	if v.{f.name} != {zero} {{', file=out)
-            print(f'		elems = append(elems, newElement(dicomtag.{f.name}, v.{f.name}))', file=out)
+            print(f'		elem, err = dicom.NewElement(dicomtag.{f.name}, v.{f.name})', file=out)
+            print(f'        if err != nil {{', file=out)
+            print(f'            return err', file=out)
+            print(f'        }}', file=out)
+            print(f'		elems = append(elems, elem)', file=out)
             print(f'	}}', file=out)
         elif f.type == 'Status':
-            print(f'	elems = append(elems, newStatusElements(v.{f.name})...)', file=out)
+            print(f'	statusElems, err := newStatusElements(v.{f.name})', file=out)
+            print(f'    if err != nil {{', file=out)
+            print(f'        return err', file=out)
+            print(f'    }}', file=out)
+            print(f'	elems = append(elems, statusElems...)', file=out)
         else:
-            print(f'	elems = append(elems, newElement(dicomtag.{f.name}, v.{f.name}))', file=out)
-    print('	elems = append(elems, v.Extra...)', file=out)
-    print('	encodeElements(e, elems)', file=out)
+            print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, v.{f.name})', file=out)
+            print(f'    if err != nil {{', file=out)
+            print(f'        return err', file=out)
+            print(f'    }}', file=out)
+            print(f'	elems = append(elems, elem)', file=out)
+    print('    elems = append(elems, v.Extra...)', file=out)
+    print('    return encodeElements(w, elems)', file=out)
     print('}', file=out)
 
     print('', file=out)
@@ -168,11 +184,15 @@ def generate_go_definition(m: Message, out: IO[str]):
 
 
     print('', file=out)
-    print(f'func decode{m.name}(d *messageDecoder) *{m.name} {{', file=out)
+    print(f'func decode{m.name}(d *messageDecoder) (*{m.name}, error) {{', file=out)
     print(f'	v := &{m.name}{{}}', file=out)
+    print(f'	var err error', file=out)
     for f in m.fields:
         if f.type == 'Status':
-            print(f'	v.{f.name} = d.getStatus()', file=out)
+            print(f'	v.{f.name}, err = d.getStatus()', file=out)
+            print(f'    if err != nil {{', file=out)
+            print(f'        return nil, err', file=out)
+            print(f'    }}', file=out)
         else:
             if f.type == 'string':
                 decoder = 'String'
@@ -186,10 +206,19 @@ def generate_go_definition(m: Message, out: IO[str]):
                 required = 'requiredElement'
             else:
                 required = 'optionalElement'
-            print(f'	v.{f.name} = d.get{decoder}(dicomtag.{f.name}, {required})', file=out)
+            print(f'	v.{f.name}, err = d.get{decoder}(dicomtag.{f.name})', file=out)
+            print(f'    if err != nil {{', file=out)
+            if not f.required:
+                print(f'        if !errors.Is(err, dicom.ErrorElementNotFound) {{', file=out)
+                print(f'            return nil, err', file=out)
+                print(f'        }}', file=out)
+            else: 
+                print(f'        return nil, err', file=out)
+            print(f'    }}', file=out)
     print(f'	v.Extra = d.unparsedElements()', file=out)
-    print(f'	return v', file=out)
+    print(f'	return v, nil', file=out)
     print('}', file=out)
+    print('', file=out)
 
 def main():
     with open('dimse_messages.go', 'w') as out:
@@ -199,11 +228,12 @@ package dimse
 // Code generated from generate_dimse_messages.py. DO NOT EDIT.
 
 import (
+    "errors"
 	"fmt"
 
 	"github.com/suyashkumar/dicom"
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
 )
 
         """, file=out)
@@ -213,14 +243,13 @@ import (
         for m in MESSAGES:
             print(f'const CommandField{m.name} = {m.command_field}', file=out)
 
-        print('func decodeMessageForType(d* messageDecoder, commandField uint16) Message {', file=out)
+        print('func decodeMessageForType(d* messageDecoder, commandField uint16) (Message, error) {', file=out)
         print('	switch commandField {', file=out)
         for m in MESSAGES:
             print('	case 0x%x:' % (m.command_field, ), file=out)
             print(f'		return decode{m.name}(d)', file=out)
         print('	default:', file=out)
-        print('		d.setError(fmt.Errorf("Unknown DIMSE command 0x%x", commandField))', file=out)
-        print('		return nil', file=out)
+        print('	    return nil, fmt.Errorf("Unknown DIMSE command 0x%x", commandField)', file=out)
         print('	}', file=out)
         print('}', file=out)
 
