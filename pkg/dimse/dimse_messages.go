@@ -61,14 +61,14 @@ func (v *CStoreRq) Encode(w *dicomio.Writer) error {
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.MoveOriginatorMessageID != 0 {
 		elem, err = dicom.NewElement(dicomtag.MoveOriginatorMessageID, v.MoveOriginatorMessageID)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
     elems = append(elems, v.Extra...)
     return encodeElements(w, elems)
@@ -510,28 +510,28 @@ func (v *CGetRsp) Encode(w *dicomio.Writer) error {
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfCompletedSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, v.NumberOfCompletedSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfFailedSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, v.NumberOfFailedSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfWarningSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, v.NumberOfWarningSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	statusElems, err := newStatusElements(v.Status)
     if err != nil {
@@ -740,28 +740,28 @@ func (v *CMoveRsp) Encode(w *dicomio.Writer) error {
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfCompletedSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, v.NumberOfCompletedSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfFailedSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, v.NumberOfFailedSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	if v.NumberOfWarningSuboperations != 0 {
 		elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, v.NumberOfWarningSuboperations)
         if err != nil {
             return err
         }
-		elems = append(elems, elem)
+        elems = append(elems, elem)
 	}
 	statusElems, err := newStatusElements(v.Status)
     if err != nil {

@@ -121,7 +121,7 @@ def generate_go_definition(m: Message, out: IO[str]):
             print(f'        if err != nil {{', file=out)
             print(f'            return err', file=out)
             print(f'        }}', file=out)
-            print(f'		elems = append(elems, elem)', file=out)
+            print(f'        elems = append(elems, elem)', file=out)
             print(f'	}}', file=out)
         elif f.type == 'Status':
             print(f'	statusElems, err := newStatusElements(v.{f.name})', file=out)
