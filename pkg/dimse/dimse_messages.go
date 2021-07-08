@@ -1006,6 +1006,6 @@ func decodeMessageForType(d* messageDecoder, commandField uint16) (Message, erro
 	case 0x8030:
 		return decodeCEchoRsp(d)
 	default:
-	    return nil, fmt.Errorf("Unknown DIMSE command 0x%x", commandField)
+	    return nil, fmt.Errorf("unknown dimse command 0x%x", commandField)
 	}
 }

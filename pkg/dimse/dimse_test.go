@@ -1,6 +1,7 @@
 package dimse_test
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"testing"
@@ -13,10 +14,14 @@ func testDIMSE(t *testing.T, v dimse.Message) {
 	b := &bytes.Buffer{}
 	w := dicomio.NewWriter(b, binary.LittleEndian, true)
 	dimse.EncodeMessage(&w, v)
-	bytes := b.Bytes()
-	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
-	v2 := dimse.ReadMessage(d)
-	err := d.Finish()
+
+	b2 := bufio.NewReader(bytes.NewBuffer(b.Bytes()))
+
+	d, err := dicomio.NewReader(b2, binary.LittleEndian, int64(len(b.Bytes())))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v2, err := dimse.ReadMessage(d)
 	if err != nil {
 		t.Fatal(err)
 	}

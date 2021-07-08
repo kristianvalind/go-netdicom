@@ -6,6 +6,7 @@ package dimse
 //go:generate stringer -type StatusCode
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -18,6 +19,10 @@ import (
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
 )
+
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
 
 // Message defines the common interface for all DIMSE message types.
 type Message interface {
@@ -50,13 +55,6 @@ type messageDecoder struct {
 	parsed []bool // true if this element was parsed into a message field.
 	err    error
 }
-
-type isOptionalElement int
-
-const (
-	requiredElement isOptionalElement = iota
-	optionalElement
-)
 
 // Find an element with the given tag. No longer checks requiredness.
 func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
@@ -136,12 +134,20 @@ func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
 	sort.Slice(elems, func(i, j int) bool {
 		return elems[i].Tag.Compare(elems[j].Tag) < 0
 	})
-	elementWriter := dicom.NewWriter(w, dicom.DefaultMissingTransferSyntax())
+
+	elementBuffer := bytes.Buffer{}
+
+	elementWriter := dicom.NewWriter(&elementBuffer, dicom.DefaultMissingTransferSyntax())
 	for _, elem := range elems {
 		err := elementWriter.WriteElement(elem)
 		if err != nil {
 			return err
 		}
+	}
+
+	err := w.WriteBytes(elementBuffer.Bytes())
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -256,28 +262,32 @@ func ReadMessage(r dicomio.Reader) (Message, error) {
 
 // EncodeMessage serializes the given message.
 func EncodeMessage(w *dicomio.Writer, v Message) error {
-	buf := &bytes.Buffer{}
+	messageBuf := &bytes.Buffer{}
+
 	// DIMSE messages are always encoded Implicit+LE. See P3.7 6.3.1.
-	subWriter := dicomio.NewWriter(buf, binary.LittleEndian, true)
+	subWriter := dicomio.NewWriter(messageBuf, binary.LittleEndian, true)
 	err := v.Encode(&subWriter)
 	if err != nil {
 		return err
 	}
+	log.Print(messageBuf.Bytes())
 
-	bufLen := buf.Bytes()
+	mBufLen := messageBuf.Bytes()
 
-	elementWriter := dicom.NewWriter(w, dicom.DefaultMissingTransferSyntax())
-	element, err := dicom.NewElement(dicomtag.CommandGroupLength, uint32(len(bufLen)))
+	elementBuffer := bytes.Buffer{}
+	elementWriter := dicom.NewWriter(&elementBuffer, dicom.DefaultMissingTransferSyntax())
+
+	element, err := dicom.NewElement(dicomtag.CommandGroupLength, uint32(len(mBufLen)))
 	if err != nil {
 		return err
 	}
 
-	err = elementWriter.WriteElement(elementWriter, element)
+	err = elementWriter.WriteElement(element)
 	if err != nil {
 		return err
 	}
 
-	err = w.WriteBytes(buf.Bytes())
+	err = w.WriteBytes(elementBuffer.Bytes())
 	if err != nil {
 		return err
 	}
@@ -306,7 +316,7 @@ func (a *CommandAssembler) AddDataPDU(pdu *pdu.PDataTf) (byte, Message, []byte, 
 		if a.contextID == 0 {
 			a.contextID = item.ContextID
 		} else if a.contextID != item.ContextID {
-			return 0, nil, nil, fmt.Errorf("Mixed context: %d %d", a.contextID, item.ContextID)
+			return 0, nil, nil, fmt.Errorf("mixed context: %d %d", a.contextID, item.ContextID)
 		}
 		if item.Command {
 			a.commandBytes = append(a.commandBytes, item.Value...)
@@ -330,9 +340,13 @@ func (a *CommandAssembler) AddDataPDU(pdu *pdu.PDataTf) (byte, Message, []byte, 
 		return 0, nil, nil, nil
 	}
 	if a.command == nil {
-		d := dicomio.NewBytesDecoder(a.commandBytes, nil, dicomio.UnknownVR)
-		a.command = ReadMessage(d)
-		if err := d.Finish(); err != nil {
+		commandReader := bufio.NewReader(bytes.NewBuffer(a.commandBytes))
+		d, err := dicomio.NewReader(commandReader, binary.LittleEndian, int64(len(a.commandBytes)))
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		a.command, err = ReadMessage(d)
+		if err != nil {
 			return 0, nil, nil, err
 		}
 	}

@@ -249,7 +249,7 @@ import (
             print('	case 0x%x:' % (m.command_field, ), file=out)
             print(f'		return decode{m.name}(d)', file=out)
         print('	default:', file=out)
-        print('	    return nil, fmt.Errorf("Unknown DIMSE command 0x%x", commandField)', file=out)
+        print('	    return nil, fmt.Errorf("unknown dimse command 0x%x", commandField)', file=out)
         print('	}', file=out)
         print('}', file=out)
 
