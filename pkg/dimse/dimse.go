@@ -59,6 +59,7 @@ type messageDecoder struct {
 // Find an element with the given tag. No longer checks requiredness.
 func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
 	for i, elem := range d.elems {
+		log.Print(elem)
 		if elem.Tag == tag {
 			log.Printf("dimse.findElement: Return %v for %s", elem, tag.String())
 			d.parsed[i] = true
@@ -138,6 +139,7 @@ func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
 	elementBuffer := bytes.Buffer{}
 
 	elementWriter := dicom.NewWriter(&elementBuffer, dicom.DefaultMissingTransferSyntax())
+	elementWriter.SetTransferSyntax(binary.LittleEndian, true)
 	for _, elem := range elems {
 		err := elementWriter.WriteElement(elem)
 		if err != nil {
@@ -156,7 +158,7 @@ func encodeElements(w *dicomio.Writer, elems []*dicom.Element) error {
 // Create a list of elements that represent the dimse status. The list contains
 // multiple elements for non-ok status.
 func newStatusElements(s Status) ([]*dicom.Element, error) {
-	statusElement, err := dicom.NewElement(dicomtag.Status, uint16(s.Status))
+	statusElement, err := dicom.NewElement(dicomtag.Status, []int{int(s.Status)})
 	if err != nil {
 		return nil, err
 	}
@@ -225,8 +227,10 @@ func ReadMessage(r dicomio.Reader) (Message, error) {
 	// LE.
 	//
 
-	p, err := dicom.NewParser(r, r.BytesLeftUntilLimit(), nil)
+	log.Print(r.BytesLeftUntilLimit())
+	p, err := dicom.NewParser(r, r.BytesLeftUntilLimit(), nil, dicom.SkipHeaderRead())
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 	var elems []*dicom.Element
@@ -270,14 +274,14 @@ func EncodeMessage(w *dicomio.Writer, v Message) error {
 	if err != nil {
 		return err
 	}
-	log.Print(messageBuf.Bytes())
 
 	mBufLen := messageBuf.Bytes()
 
 	elementBuffer := bytes.Buffer{}
 	elementWriter := dicom.NewWriter(&elementBuffer, dicom.DefaultMissingTransferSyntax())
+	elementWriter.SetTransferSyntax(binary.LittleEndian, true)
 
-	element, err := dicom.NewElement(dicomtag.CommandGroupLength, uint32(len(mBufLen)))
+	element, err := dicom.NewElement(dicomtag.CommandGroupLength, []int{(len(mBufLen))})
 	if err != nil {
 		return err
 	}

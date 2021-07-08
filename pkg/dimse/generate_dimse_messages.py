@@ -105,7 +105,7 @@ def generate_go_definition(m: Message, out: IO[str]):
     print('', file=out)
     print(f'func (v *{m.name}) Encode(w *dicomio.Writer) error {{', file=out)
     print('    elems := []*dicom.Element{}', file=out)
-    print(f'    elem, err := dicom.NewElement(dicomtag.CommandField, uint16({m.command_field}))', file=out)
+    print(f'    elem, err := dicom.NewElement(dicomtag.CommandField, []int{{{m.command_field}}})', file=out)
     print('    if err != nil {', file=out)
     print('        return err', file=out)
     print('    }', file=out)
@@ -117,7 +117,10 @@ def generate_go_definition(m: Message, out: IO[str]):
             else:
                 zero = '0'
             print(f'	if v.{f.name} != {zero} {{', file=out)
-            print(f'		elem, err = dicom.NewElement(dicomtag.{f.name}, v.{f.name})', file=out)
+            if f.type == 'string':
+                print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, []string{{v.{f.name}}})', file=out)
+            else:
+                print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, []int{{int(v.{f.name})}})', file=out)
             print(f'        if err != nil {{', file=out)
             print(f'            return err', file=out)
             print(f'        }}', file=out)
@@ -130,7 +133,10 @@ def generate_go_definition(m: Message, out: IO[str]):
             print(f'    }}', file=out)
             print(f'	elems = append(elems, statusElems...)', file=out)
         else:
-            print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, v.{f.name})', file=out)
+            if f.type == 'string':
+                print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, []string{{v.{f.name}}})', file=out)
+            else:
+                print(f'    elem, err = dicom.NewElement(dicomtag.{f.name}, []int{{int(v.{f.name})}})', file=out)
             print(f'    if err != nil {{', file=out)
             print(f'        return err', file=out)
             print(f'    }}', file=out)

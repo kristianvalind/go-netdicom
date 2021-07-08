@@ -26,45 +26,45 @@ type CStoreRq struct {
 
 func (v *CStoreRq) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(1))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{1})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
+    elem, err = dicom.NewElement(dicomtag.MessageID, []int{int(v.MessageID)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.Priority, v.Priority)
+    elem, err = dicom.NewElement(dicomtag.Priority, []int{int(v.Priority)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPInstanceUID, v.AffectedSOPInstanceUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPInstanceUID, []string{v.AffectedSOPInstanceUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
 	if v.MoveOriginatorApplicationEntityTitle != "" {
-		elem, err = dicom.NewElement(dicomtag.MoveOriginatorApplicationEntityTitle, v.MoveOriginatorApplicationEntityTitle)
+    elem, err = dicom.NewElement(dicomtag.MoveOriginatorApplicationEntityTitle, []string{v.MoveOriginatorApplicationEntityTitle})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.MoveOriginatorMessageID != 0 {
-		elem, err = dicom.NewElement(dicomtag.MoveOriginatorMessageID, v.MoveOriginatorMessageID)
+    elem, err = dicom.NewElement(dicomtag.MoveOriginatorMessageID, []int{int(v.MoveOriginatorMessageID)})
         if err != nil {
             return err
         }
@@ -144,27 +144,27 @@ type CStoreRsp struct {
 
 func (v *CStoreRsp) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32769))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32769})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
+    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, []int{int(v.MessageIDBeingRespondedTo)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPInstanceUID, v.AffectedSOPInstanceUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPInstanceUID, []string{v.AffectedSOPInstanceUID})
     if err != nil {
         return err
     }
@@ -235,27 +235,27 @@ type CFindRq struct {
 
 func (v *CFindRq) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
+    elem, err = dicom.NewElement(dicomtag.MessageID, []int{int(v.MessageID)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.Priority, v.Priority)
+    elem, err = dicom.NewElement(dicomtag.Priority, []int{int(v.Priority)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
@@ -317,22 +317,22 @@ type CFindRsp struct {
 
 func (v *CFindRsp) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32800))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32800})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
+    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, []int{int(v.MessageIDBeingRespondedTo)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
@@ -399,27 +399,27 @@ type CGetRq struct {
 
 func (v *CGetRq) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(16))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{16})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
+    elem, err = dicom.NewElement(dicomtag.MessageID, []int{int(v.MessageID)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.Priority, v.Priority)
+    elem, err = dicom.NewElement(dicomtag.Priority, []int{int(v.Priority)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
@@ -485,49 +485,49 @@ type CGetRsp struct {
 
 func (v *CGetRsp) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32784))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32784})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
+    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, []int{int(v.MessageIDBeingRespondedTo)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
 	if v.NumberOfRemainingSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfRemainingSuboperations, v.NumberOfRemainingSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfRemainingSuboperations, []int{int(v.NumberOfRemainingSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfCompletedSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, v.NumberOfCompletedSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, []int{int(v.NumberOfCompletedSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfFailedSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, v.NumberOfFailedSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, []int{int(v.NumberOfFailedSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfWarningSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, v.NumberOfWarningSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, []int{int(v.NumberOfWarningSuboperations)})
         if err != nil {
             return err
         }
@@ -620,32 +620,32 @@ type CMoveRq struct {
 
 func (v *CMoveRq) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(33))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{33})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
+    elem, err = dicom.NewElement(dicomtag.MessageID, []int{int(v.MessageID)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.Priority, v.Priority)
+    elem, err = dicom.NewElement(dicomtag.Priority, []int{int(v.Priority)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MoveDestination, v.MoveDestination)
+    elem, err = dicom.NewElement(dicomtag.MoveDestination, []string{v.MoveDestination})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
@@ -715,49 +715,49 @@ type CMoveRsp struct {
 
 func (v *CMoveRsp) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32801))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32801})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, v.AffectedSOPClassUID)
+    elem, err = dicom.NewElement(dicomtag.AffectedSOPClassUID, []string{v.AffectedSOPClassUID})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
+    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, []int{int(v.MessageIDBeingRespondedTo)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
 	if v.NumberOfRemainingSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfRemainingSuboperations, v.NumberOfRemainingSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfRemainingSuboperations, []int{int(v.NumberOfRemainingSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfCompletedSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, v.NumberOfCompletedSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfCompletedSuboperations, []int{int(v.NumberOfCompletedSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfFailedSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, v.NumberOfFailedSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfFailedSuboperations, []int{int(v.NumberOfFailedSuboperations)})
         if err != nil {
             return err
         }
         elems = append(elems, elem)
 	}
 	if v.NumberOfWarningSuboperations != 0 {
-		elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, v.NumberOfWarningSuboperations)
+    elem, err = dicom.NewElement(dicomtag.NumberOfWarningSuboperations, []int{int(v.NumberOfWarningSuboperations)})
         if err != nil {
             return err
         }
@@ -847,17 +847,17 @@ type CEchoRq struct {
 
 func (v *CEchoRq) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(48))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{48})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageID, v.MessageID)
+    elem, err = dicom.NewElement(dicomtag.MessageID, []int{int(v.MessageID)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }
@@ -910,17 +910,17 @@ type CEchoRsp struct {
 
 func (v *CEchoRsp) Encode(w *dicomio.Writer) error {
     elems := []*dicom.Element{}
-    elem, err := dicom.NewElement(dicomtag.CommandField, uint16(32816))
+    elem, err := dicom.NewElement(dicomtag.CommandField, []int{32816})
     if err != nil {
         return err
     }
     elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, v.MessageIDBeingRespondedTo)
+    elem, err = dicom.NewElement(dicomtag.MessageIDBeingRespondedTo, []int{int(v.MessageIDBeingRespondedTo)})
     if err != nil {
         return err
     }
 	elems = append(elems, elem)
-    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, v.CommandDataSetType)
+    elem, err = dicom.NewElement(dicomtag.CommandDataSetType, []int{int(v.CommandDataSetType)})
     if err != nil {
         return err
     }

@@ -13,7 +13,13 @@ import (
 func testDIMSE(t *testing.T, v dimse.Message) {
 	b := &bytes.Buffer{}
 	w := dicomio.NewWriter(b, binary.LittleEndian, true)
-	dimse.EncodeMessage(&w, v)
+
+	w.SetTransferSyntax(binary.LittleEndian, true)
+
+	err := dimse.EncodeMessage(&w, v)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	b2 := bufio.NewReader(bytes.NewBuffer(b.Bytes()))
 
