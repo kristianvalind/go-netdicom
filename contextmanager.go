@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/kristianvalind/go-netdicom/pdu"
+	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/kristianvalind/go-netdicom/pkg/pdu"
 	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 type contextManagerEntry struct {

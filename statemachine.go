@@ -12,9 +12,9 @@ import (
 
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/kristianvalind/go-netdicom/dimse"
-	"github.com/kristianvalind/go-netdicom/pdu"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/pdu"
 )
 
 type stateType int

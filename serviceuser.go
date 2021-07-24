@@ -6,15 +6,15 @@ package netdicom
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
 	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
+	dicomuid "github.com/suyashkumar/dicom/pkg/uid"
 )
 
 type serviceUserStatus int
@@ -132,7 +132,7 @@ func NewServiceUser(params ServiceUserParams) (*ServiceUser, error) {
 			doassert(event.eventType == upcallEventData)
 			su.disp.handleEvent(event)
 		}
-		dicomlog.Vprintf(1, "dicom.serviceUser: dispatcher finished")
+		log.Print(1, "dicom.serviceUser: dispatcher finished")
 		su.disp.close()
 		su.mu.Lock()
 		su.cond.Broadcast()
@@ -150,7 +150,7 @@ func (su *ServiceUser) waitUntilReady() error {
 	}
 	if su.status != serviceUserAssociationActive {
 		// Will get an error when waiting for a response.
-		dicomlog.Vprintf(0, "dicom.serviceUser: Connection failed")
+		log.Print(0, "dicom.serviceUser: Connection failed")
 		return fmt.Errorf("dicom.serviceUser: Connection failed")
 	}
 	return nil
@@ -164,7 +164,7 @@ func (su *ServiceUser) Connect(serverAddr string) {
 	}
 	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		dicomlog.Vprintf(0, "dicom.serviceUser: Connect(%s): %v", serverAddr, err)
+		log.Print(0, "dicom.serviceUser: Connect(%s): %v", serverAddr, err)
 		su.disp.downcallCh <- stateEvent{event: evt17, pdu: nil, err: err}
 	} else {
 		su.disp.downcallCh <- stateEvent{event: evt02, pdu: nil, err: nil, conn: conn}
@@ -216,7 +216,7 @@ func (su *ServiceUser) CEcho() error {
 // until the operation finishes.
 //
 // REQUIRES: Connect() or SetConn has been called.
-func (su *ServiceUser) CStore(ds *dicom.DataSet) error {
+func (su *ServiceUser) CStore(ds *dicom.Dataset) error {
 	err := su.waitUntilReady()
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (su *ServiceUser) CStore(ds *dicom.DataSet) error {
 		return err
 	}
 	if err != nil {
-		dicomlog.Vprintf(0, "dicom.serviceUser: C-STORE: sop class %v not found in context %v", sopClassUID, err)
+		log.Print(0, "dicom.serviceUser: C-STORE: sop class %v not found in context %v", sopClassUID, err)
 		return err
 	}
 	defer su.disp.deleteCommand(cs)
@@ -322,11 +322,11 @@ func encodeQRPayload(opType qrOpType, qrLevel QRLevel, filter []*dicom.Element, 
 			foundQRLevel = true
 		}
 		dicom.WriteElement(dataEncoder, elem)
-		dicomlog.Vprintf(2, "dicom.serviceUser: Add QR payload: %v", elem)
+		log.Print(2, "dicom.serviceUser: Add QR payload: %v", elem)
 	}
 	if !foundQRLevel {
 		elem := dicom.MustNewElement(dicomtag.QueryRetrieveLevel, qrLevelString)
-		dicomlog.Vprintf(2, "dicom.serviceUser: Add QR payload: %v", elem)
+		log.Print(2, "dicom.serviceUser: Add QR payload: %v", elem)
 		dicom.WriteElement(dataEncoder, elem)
 	}
 	if err := dataEncoder.Error(); err != nil {
@@ -389,7 +389,7 @@ func (su *ServiceUser) CFind(qrLevel QRLevel, filter []*dicom.Element) chan CFin
 			}
 			elems, err := readElementsInBytes(event.data, context.transferSyntaxUID)
 			if err != nil {
-				dicomlog.Vprintf(0, "dicom.serviceUser: Failed to decode C-FIND response: %v %v", resp.String(), err)
+				log.Print(0, "dicom.serviceUser: Failed to decode C-FIND response: %v %v", resp.String(), err)
 				ch <- CFindResult{Err: err}
 			} else {
 				ch <- CFindResult{Elements: elems}
@@ -471,7 +471,7 @@ func (su *ServiceUser) CGet(qrLevel QRLevel, filter []*dicom.Element,
 		if resp.Status.Status != dimse.StatusPending {
 			if resp.Status.Status != 0 {
 				e := fmt.Errorf("Received C-GET error: %+v", resp)
-				dicomlog.Vprintf(0, "dicom.serviceUser: C-GET: %v", e)
+				log.Print(0, "dicom.serviceUser: C-GET: %v", e)
 				return e
 			}
 			break
