@@ -21,9 +21,9 @@ func testDIMSE(t *testing.T, v dimse.Message) {
 		t.Fatal(err)
 	}
 
-	b2 := bufio.NewReader(bytes.NewBuffer(b.Bytes()))
+	b2 := bufio.NewReader(b)
 
-	d, err := dicomio.NewReader(b2, binary.LittleEndian, int64(len(b.Bytes())))
+	d, err := dicomio.NewReader(b2, binary.LittleEndian, int64(b.Len()))
 	if err != nil {
 		t.Fatal(err)
 	}

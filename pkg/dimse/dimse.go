@@ -59,7 +59,6 @@ type messageDecoder struct {
 // Find an element with the given tag. No longer checks requiredness.
 func (d *messageDecoder) findElement(tag dicomtag.Tag) (*dicom.Element, error) {
 	for i, elem := range d.elems {
-		log.Print(elem)
 		if elem.Tag == tag {
 			log.Printf("dimse.findElement: Return %v for %s", elem, tag.String())
 			d.parsed[i] = true
@@ -227,7 +226,6 @@ func ReadMessage(r dicomio.Reader) (Message, error) {
 	// LE.
 	//
 
-	log.Print(r.BytesLeftUntilLimit())
 	p, err := dicom.NewParser(r, r.BytesLeftUntilLimit(), nil, dicom.SkipHeaderRead())
 	if err != nil {
 		log.Print(err)
@@ -254,6 +252,7 @@ func ReadMessage(r dicomio.Reader) (Message, error) {
 	}
 	commandField, err := dd.getUInt16(dicomtag.CommandField)
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 
@@ -275,13 +274,11 @@ func EncodeMessage(w *dicomio.Writer, v Message) error {
 		return err
 	}
 
-	mBufLen := messageBuf.Bytes()
-
 	elementBuffer := bytes.Buffer{}
 	elementWriter := dicom.NewWriter(&elementBuffer, dicom.DefaultMissingTransferSyntax())
 	elementWriter.SetTransferSyntax(binary.LittleEndian, true)
 
-	element, err := dicom.NewElement(dicomtag.CommandGroupLength, []int{(len(mBufLen))})
+	element, err := dicom.NewElement(dicomtag.CommandGroupLength, []int{(messageBuf.Len())})
 	if err != nil {
 		return err
 	}
@@ -292,6 +289,11 @@ func EncodeMessage(w *dicomio.Writer, v Message) error {
 	}
 
 	err = w.WriteBytes(elementBuffer.Bytes())
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteBytes(messageBuf.Bytes())
 	if err != nil {
 		return err
 	}
