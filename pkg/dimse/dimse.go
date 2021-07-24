@@ -104,13 +104,20 @@ func (d *messageDecoder) getString(tag dicomtag.Tag) (string, error) {
 		return "", err
 	}
 
-	val := element.Value.GetValue()
-	v, ok := val.(string)
-	if !ok {
-		return "", fmt.Errorf("element is not string")
+	switch element.ValueRepresentation {
+	case dicomtag.VRStringList:
+		{
+			val := element.Value.GetValue()
+			v, ok := val.([]string)
+			if !ok {
+				return "", fmt.Errorf("element is not string")
+			}
+
+			return v[0], nil
+		}
 	}
 
-	return v, nil
+	return "", fmt.Errorf("invalid value representation: %v (expected: %v)", element.ValueRepresentation, dicomtag.VRStringList)
 }
 
 // Find an element with "tag", and extract a uint16 from it. Errors are reported in d.err.
@@ -120,13 +127,20 @@ func (d *messageDecoder) getUInt16(tag dicomtag.Tag) (uint16, error) {
 		return 0, err
 	}
 
-	val := element.Value.GetValue()
-	v, ok := val.(uint16)
-	if !ok {
-		return 0, fmt.Errorf("element is not uint16")
+	switch element.ValueRepresentation {
+	case dicomtag.VRUInt16List:
+		{
+			val := element.Value.GetValue()
+			v, ok := val.([]int)
+			if !ok {
+				return 0, fmt.Errorf("element is not uint16")
+			}
+
+			return uint16(v[0]), nil
+		}
 	}
 
-	return v, nil
+	return 0, fmt.Errorf("invalid value representation: %v (expected: %v)", element.ValueRepresentation, dicomtag.VRUInt16List)
 }
 
 // Encode the given elements. The elements are sorted in ascending tag order.
