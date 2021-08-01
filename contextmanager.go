@@ -2,11 +2,10 @@ package netdicom
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomuid"
 	"github.com/kristianvalind/go-netdicom/pkg/pdu"
-	"github.com/suyashkumar/dicom"
+	dicomuid "github.com/suyashkumar/dicom/pkg/uid"
 )
 
 type contextManagerEntry struct {
@@ -91,8 +90,8 @@ func (m *contextManager) generateAssociateRequest(
 		&pdu.UserInformationItem{
 			Items: []pdu.SubItem{
 				&pdu.UserInformationMaximumLengthItem{uint32(DefaultMaxPDUSize)},
-				&pdu.ImplementationClassUIDSubItem{dicom.GoDICOMImplementationClassUID},
-				&pdu.ImplementationVersionNameSubItem{dicom.GoDICOMImplementationVersionName}}})
+				&pdu.ImplementationClassUIDSubItem{ImplementationClassUID},
+				&pdu.ImplementationVersionNameSubItem{ImplementationVersionName}}})
 
 	return items
 }
@@ -109,7 +108,7 @@ func (m *contextManager) onAssociateRequest(requestItems []pdu.SubItem) ([]pdu.S
 		switch ri := requestItem.(type) {
 		case *pdu.ApplicationContextItem:
 			if ri.Name != pdu.DICOMApplicationContextItemName {
-				dicomlog.Vprintf(0, "dicom.onAssociateRequest(%s): Found illegal applicationcontextname. Expect %v, found %v",
+				log.Printf("dicom.onAssociateRequest(%s): Found illegal applicationcontextname. Expect %v, found %v",
 					m.label, ri.Name, pdu.DICOMApplicationContextItemName)
 			}
 		case *pdu.PresentationContextItem:
@@ -142,7 +141,7 @@ func (m *contextManager) onAssociateRequest(requestItems []pdu.SubItem) ([]pdu.S
 				ContextID: ri.ContextID,
 				Result:    0, // accepted
 				Items:     []pdu.SubItem{&pdu.TransferSyntaxSubItem{Name: pickedTransferSyntaxUID}}})
-			dicomlog.Vprintf(2, "dicom.onAssociateRequest(%s): Provider(%p): addmapping %v %v %v",
+			log.Printf("dicom.onAssociateRequest(%s): Provider(%p): addmapping %v %v %v",
 				m.label, m, sopUID, pickedTransferSyntaxUID, ri.ContextID)
 			// TODO(saito) Callback the service provider instead of accepting the sopclass blindly.
 			addContextMapping(m, sopUID, pickedTransferSyntaxUID, ri.ContextID, pdu.PresentationContextAccepted)
@@ -163,7 +162,7 @@ func (m *contextManager) onAssociateRequest(requestItems []pdu.SubItem) ([]pdu.S
 	responses = append(responses,
 		&pdu.UserInformationItem{
 			Items: []pdu.SubItem{&pdu.UserInformationMaximumLengthItem{MaximumLengthReceived: uint32(DefaultMaxPDUSize)}}})
-	dicomlog.Vprintf(1, "dicom.onAssociateRequest(%s): Received associate request, #contexts:%v, maxPDU:%v, implclass:%v, version:%v",
+	log.Printf("dicom.onAssociateRequest(%s): Received associate request, #contexts:%v, maxPDU:%v, implclass:%v, version:%v",
 		m.label, len(m.contextIDToAbstractSyntaxNameMap),
 		m.peerMaxPDUSize, m.peerImplementationClassUID, m.peerImplementationVersionName)
 	return responses, nil
@@ -211,7 +210,7 @@ func (m *contextManager) onAssociateResponse(responses []pdu.SubItem) error {
 				return fmt.Errorf("dicom.onAssociateResponse(%s): The A-ASSOCIATE request lacks the abstract syntax item for tag %v (this shouldn't happen)", m.label, ri.ContextID)
 			}
 			if ri.Result != pdu.PresentationContextAccepted {
-				dicomlog.Vprintf(0, "dicom.onAssociateResponse(%s): Abstract syntax %v, transfer syntax %v was rejected by the server: %s", m.label, dicomuid.UIDString(sopUID), dicomuid.UIDString(pickedTransferSyntaxUID), ri.Result.String())
+				log.Printf("dicom.onAssociateResponse(%s): Abstract syntax %v, transfer syntax %v was rejected by the server: %s", m.label, dicomuid.UIDString(sopUID), dicomuid.UIDString(pickedTransferSyntaxUID), ri.Result.String())
 			}
 			if !found {
 				// Generally, we expect the server to pick a
@@ -221,7 +220,7 @@ func (m *contextManager) onAssociateResponse(responses []pdu.SubItem) error {
 				// the point of reporting the list in
 				// A-ASSOCIATE-RQ, but that's only one of
 				// DICOM's pointless complexities.
-				dicomlog.Vprintf(0, "dicom.onAssociateResponse(%s): The server picked TransferSyntaxUID '%s' for %s, which is not in the list proposed, %v",
+				log.Printf("dicom.onAssociateResponse(%s): The server picked TransferSyntaxUID '%s' for %s, which is not in the list proposed, %v",
 					m.label,
 					dicomuid.UIDString(pickedTransferSyntaxUID),
 					dicomuid.UIDString(sopUID),
@@ -242,7 +241,7 @@ func (m *contextManager) onAssociateResponse(responses []pdu.SubItem) error {
 			}
 		}
 	}
-	dicomlog.Vprintf(1, "dicom.onAssociateResponse(%s): Received associate response, #contexts:%v, maxPDU:%v, implclass:%v, version:%v",
+	log.Printf("dicom.onAssociateResponse(%s): Received associate response, #contexts:%v, maxPDU:%v, implclass:%v, version:%v",
 		m.label,
 		len(m.contextIDToAbstractSyntaxNameMap),
 		m.peerMaxPDUSize, m.peerImplementationClassUID, m.peerImplementationVersionName)
@@ -256,7 +255,7 @@ func addContextMapping(
 	transferSyntaxUID string,
 	contextID byte,
 	result pdu.PresentationContextResult) {
-	dicomlog.Vprintf(2, "dicom.addContextMapping(%v): Map context %d -> %s, %s",
+	log.Printf("dicom.addContextMapping(%v): Map context %d -> %s, %s",
 		m.label, contextID, dicomuid.UIDString(abstractSyntaxUID),
 		dicomuid.UIDString(transferSyntaxUID))
 	doassert(result >= 0 && result <= 4, result)

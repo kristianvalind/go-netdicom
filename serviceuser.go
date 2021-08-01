@@ -5,6 +5,7 @@ package netdicom
 //go:generate stringer -type QRLevel
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/kristianvalind/go-netdicom/pkg/dimse"
 	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/pkg/dicomio"
 	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
 	dicomuid "github.com/suyashkumar/dicom/pkg/uid"
 )
@@ -87,10 +87,10 @@ func validateServiceUserParams(params *ServiceUserParams) error {
 		return fmt.Errorf("Empty ServiceUserParams.SOPClasses")
 	}
 	if len(params.TransferSyntaxes) == 0 {
-		params.TransferSyntaxes = dicomio.StandardTransferSyntaxes
+		params.TransferSyntaxes = dicomuid.StandardTransferSyntaxes
 	} else {
 		for i, uid := range params.TransferSyntaxes {
-			canonicalUID, err := dicomio.CanonicalTransferSyntaxUID(uid)
+			canonicalUID, err := dicomuid.CanonicalTransferSyntaxUID(uid)
 			if err != nil {
 				return err
 			}
@@ -224,11 +224,12 @@ func (su *ServiceUser) CStore(ds *dicom.Dataset) error {
 	doassert(su.cm != nil)
 
 	var sopClassUID string
-	if sopClassUIDElem, err := ds.FindElementByTag(dicomtag.MediaStorageSOPClassUID); err != nil {
-		return err
-	} else if sopClassUID, err = sopClassUIDElem.GetString(); err != nil {
+	sopClassUIDElem, err := ds.FindElementByTag(dicomtag.MediaStorageSOPClassUID)
+	if err != nil {
 		return err
 	}
+	sopClassUID = sopClassUIDElem.Value.String()
+
 	context, err := su.cm.lookupByAbstractSyntaxUID(sopClassUID)
 	if err != nil {
 		return err
@@ -315,24 +316,37 @@ func encodeQRPayload(opType qrOpType, qrLevel QRLevel, filter []*dicom.Element, 
 	}
 
 	// Encode the data payload containing the filtering conditions.
-	dataEncoder := dicomio.NewBytesEncoderWithTransferSyntax(context.transferSyntaxUID)
+	bo, implicit, err := dicomuid.ParseTransferSyntaxUID(context.transferSyntaxUID)
+	if err != nil {
+		return context, nil, err
+	}
+	b := bytes.Buffer{}
+	dataEncoder := dicom.NewWriter(&b)
+	dataEncoder.SetTransferSyntax(bo, implicit)
 	foundQRLevel := false
 	for _, elem := range filter {
 		if elem.Tag == dicomtag.QueryRetrieveLevel {
 			foundQRLevel = true
 		}
-		dicom.WriteElement(dataEncoder, elem)
+		err = dataEncoder.WriteElement(elem)
+		if err != nil {
+			return context, nil, err
+		}
 		log.Print(2, "dicom.serviceUser: Add QR payload: %v", elem)
 	}
 	if !foundQRLevel {
-		elem := dicom.MustNewElement(dicomtag.QueryRetrieveLevel, qrLevelString)
+		elem, err := dicom.NewElement(dicomtag.QueryRetrieveLevel, qrLevelString)
+		if err != nil {
+			return context, nil, err
+		}
 		log.Print(2, "dicom.serviceUser: Add QR payload: %v", elem)
-		dicom.WriteElement(dataEncoder, elem)
+		err = dataEncoder.WriteElement(elem)
+		if err != nil {
+			return context, nil, err
+		}
 	}
-	if err := dataEncoder.Error(); err != nil {
-		return context, nil, err
-	}
-	return context, dataEncoder.Bytes(), err
+
+	return context, b.Bytes(), err
 }
 
 // CFind issues a C-FIND request. Returns a channel that streams sequence of

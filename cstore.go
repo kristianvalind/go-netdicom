@@ -1,14 +1,14 @@
 package netdicom
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomtag"
-	"github.com/grailbio/go-dicom/dicomuid"
-	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
 	"github.com/suyashkumar/dicom"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
+	dicomuid "github.com/suyashkumar/dicom/pkg/uid"
 )
 
 // Helper function used by C-{STORE,GET,MOVE} to send a dataset using C-STORE
@@ -16,17 +16,13 @@ import (
 func runCStoreOnAssociation(upcallCh chan upcallEvent, downcallCh chan stateEvent,
 	cm *contextManager,
 	messageID dimse.MessageID,
-	ds *dicom.DataSet) error {
+	ds *dicom.Dataset) error {
 	var getElement = func(tag dicomtag.Tag) (string, error) {
 		elem, err := ds.FindElementByTag(tag)
 		if err != nil {
 			return "", fmt.Errorf("dicom.cstore: data lacks %s: %v", tag.String(), err)
 		}
-		s, err := elem.GetString()
-		if err != nil {
-			return "", err
-		}
-		return s, nil
+		return elem.Value.String(), nil
 	}
 	sopInstanceUID, err := getElement(dicomtag.MediaStorageSOPInstanceUID)
 	if err != nil {
@@ -36,27 +32,32 @@ func runCStoreOnAssociation(upcallCh chan upcallEvent, downcallCh chan stateEven
 	if err != nil {
 		return fmt.Errorf("dicom.cstore: data lacks MediaStorageSOPClassUID: %v", err)
 	}
-	dicomlog.Vprintf(1, "dicom.cstore(%s): DICOM abstractsyntax: %s, sopinstance: %s", cm.label, dicomuid.UIDString(sopClassUID), sopInstanceUID)
+	log.Printf("dicom.cstore(%s): DICOM abstractsyntax: %s, sopinstance: %s", cm.label, dicomuid.UIDString(sopClassUID), sopInstanceUID)
 	context, err := cm.lookupByAbstractSyntaxUID(sopClassUID)
 	if err != nil {
-		dicomlog.Vprintf(0, "dicom.cstore(%s): sop class %v not found in context %v", cm.label, sopClassUID, err)
+		log.Printf("dicom.cstore(%s): sop class %v not found in context %v", cm.label, sopClassUID, err)
 		return err
 	}
-	dicomlog.Vprintf(1, "dicom.cstore(%s): using transfersyntax %s to send sop class %s, instance %s",
+	log.Printf("dicom.cstore(%s): using transfersyntax %s to send sop class %s, instance %s",
 		cm.label,
 		dicomuid.UIDString(context.transferSyntaxUID),
 		dicomuid.UIDString(sopClassUID),
 		sopInstanceUID)
-	bodyEncoder := dicomio.NewBytesEncoderWithTransferSyntax(context.transferSyntaxUID)
+	bo, implicit, err := dicomuid.ParseTransferSyntaxUID(context.transferSyntaxUID)
+	if err != nil {
+		return fmt.Errorf("could not parse transfer syntax uid: %w", err)
+	}
+	b := bytes.Buffer{}
+	bodyEncoder := dicom.NewWriter(&b)
+	bodyEncoder.SetTransferSyntax(bo, implicit)
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group == dicomtag.MetadataGroup {
 			continue
 		}
-		dicom.WriteElement(bodyEncoder, elem)
-	}
-	if err := bodyEncoder.Error(); err != nil {
-		dicomlog.Vprintf(0, "dicom.cstore(%s): body encoder failed: %v", cm.label, err)
-		return err
+		err := bodyEncoder.WriteElement(elem)
+		if err != nil {
+			return fmt.Errorf("could not write metadata element: %w", err)
+		}
 	}
 	downcallCh <- stateEvent{
 		event: evt09,
@@ -68,16 +69,16 @@ func runCStoreOnAssociation(upcallCh chan upcallEvent, downcallCh chan stateEven
 				CommandDataSetType:     dimse.CommandDataSetTypeNonNull,
 				AffectedSOPInstanceUID: sopInstanceUID,
 			},
-			data: bodyEncoder.Bytes(),
+			data: b.Bytes(),
 		},
 	}
 	for {
-		dicomlog.Vprintf(0, "dicom.cstore(%s): Start reading resp w/ messageID:%v", cm.label, messageID)
+		log.Printf("dicom.cstore(%s): Start reading resp w/ messageID:%v", cm.label, messageID)
 		event, ok := <-upcallCh
 		if !ok {
 			return fmt.Errorf("dicom.cstore(%s): Connection closed while waiting for C-STORE response", cm.label)
 		}
-		dicomlog.Vprintf(1, "dicom.cstore(%s): resp event: %v", cm.label, event.command)
+		log.Printf("dicom.cstore(%s): resp event: %v", cm.label, event.command)
 		doassert(event.eventType == upcallEventData)
 		doassert(event.command != nil)
 		resp, ok := event.command.(*dimse.CStoreRsp)

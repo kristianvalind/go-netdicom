@@ -2,10 +2,10 @@ package netdicom
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
 )
 
 // serviceDispatcher multiplexes statemachine upcall events to DIMSE commands.
@@ -44,9 +44,9 @@ type serviceCommandState struct {
 // Send a command+data combo to the remote peer. data may be nil.
 func (cs *serviceCommandState) sendMessage(cmd dimse.Message, data []byte) {
 	if s := cmd.GetStatus(); s != nil && s.Status != dimse.StatusSuccess && s.Status != dimse.StatusPending {
-		dicomlog.Vprintf(0, "dicom.serviceDispatcher(%s): Sending DIMSE error: %v %v", cs.disp.label, cmd, cs.disp)
+		log.Printf("dicom.serviceDispatcher(%s): Sending DIMSE error: %v %v", cs.disp.label, cmd, cs.disp)
 	} else {
-		dicomlog.Vprintf(1, "dicom.serviceDispatcher(%s): Sending DIMSE message: %v %v", cs.disp.label, cmd, cs.disp)
+		log.Printf("dicom.serviceDispatcher(%s): Sending DIMSE message: %v %v", cs.disp.label, cmd, cs.disp)
 	}
 	payload := &stateEventDIMSEPayload{
 		abstractSyntaxName: cs.context.abstractSyntaxUID,
@@ -78,7 +78,7 @@ func (disp *serviceDispatcher) findOrCreateCommand(
 		upcallCh:  make(chan upcallEvent, 128),
 	}
 	disp.activeCommands[msgID] = cs
-	dicomlog.Vprintf(1, "dicom.serviceDispatcher(%s): Start command %+v", disp.label, cs)
+	log.Printf("dicom.serviceDispatcher(%s): Start command %+v", disp.label, cs)
 	return cs, false
 }
 
@@ -103,7 +103,7 @@ func (disp *serviceDispatcher) newCommand(
 		}
 		disp.activeCommands[msgID] = cs
 		disp.lastMessageID = msgID
-		dicomlog.Vprintf(1, "dicom.serviceDispatcher: Start new command %+v", cs)
+		log.Printf("dicom.serviceDispatcher: Start new command %+v", cs)
 		return cs, nil
 	}
 	return nil, fmt.Errorf("Failed to allocate a message ID (too many outstading?)")
@@ -111,7 +111,7 @@ func (disp *serviceDispatcher) newCommand(
 
 func (disp *serviceDispatcher) deleteCommand(cs *serviceCommandState) {
 	disp.mu.Lock()
-	dicomlog.Vprintf(1, "dicom.serviceDispatcher(%s): Finish provider command %v", disp.label, cs.messageID)
+	log.Printf("dicom.serviceDispatcher(%s): Finish provider command %v", disp.label, cs.messageID)
 	if _, ok := disp.activeCommands[cs.messageID]; !ok {
 		panic(fmt.Sprintf("cs %+v", cs))
 	}
@@ -139,16 +139,16 @@ func (disp *serviceDispatcher) handleEvent(event upcallEvent) {
 	doassert(event.command != nil)
 	context, err := event.cm.lookupByContextID(event.contextID)
 	if err != nil {
-		dicomlog.Vprintf(0, "dicom.serviceDispatcher(%s): Invalid context ID %d: %v", disp.label, event.contextID, err)
+		log.Printf("dicom.serviceDispatcher(%s): Invalid context ID %d: %v", disp.label, event.contextID, err)
 		disp.downcallCh <- stateEvent{event: evt19, pdu: nil, err: err}
 		return
 	}
 	messageID := event.command.GetMessageID()
 	dc, found := disp.findOrCreateCommand(messageID, event.cm, context)
 	if found {
-		dicomlog.Vprintf(1, "dicom.serviceDispatcher(%s): Forwarding command to existing command: %+v %+v", disp.label, event.command, dc)
+		log.Printf("dicom.serviceDispatcher(%s): Forwarding command to existing command: %+v %+v", disp.label, event.command, dc)
 		dc.upcallCh <- event
-		dicomlog.Vprintf(1, "dicom.serviceDispatcher(%s): Done forwarding command to existing command: %+v %+v", disp.label, event.command, dc)
+		log.Printf("dicom.serviceDispatcher(%s): Done forwarding command to existing command: %+v %+v", disp.label, event.command, dc)
 		return
 	}
 	disp.mu.Lock()
