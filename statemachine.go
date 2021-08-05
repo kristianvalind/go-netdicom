@@ -4,6 +4,8 @@ package netdicom
 // http://dicom.nema.org/medical/dicom/current/output/pdf/part08.pdf
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -318,13 +320,14 @@ var actionDt1 = &stateAction{"DT-1", "Send P-DATA-TF PDU",
 		doassert(event.dimsePayload != nil)
 		command := event.dimsePayload.command
 		doassert(command != nil)
-		e := dicomio.NewBytesEncoder(nil, dicomio.UnknownVR)
-		dimse.EncodeMessage(e, command)
-		if e.Error() != nil {
-			panic(fmt.Sprintf("Failed to encode DIMSE cmd %v: %v", command, e.Error()))
+		b := bytes.Buffer{}
+		e := dicomio.NewWriter(&b, binary.LittleEndian, true)
+		err := dimse.EncodeMessage(&e, command)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to encode DIMSE cmd %v: %v", command, err.Error()))
 		}
 		log.Printf("dicom.stateMachine(%s): Send DIMSE msg: %v", sm.label, command)
-		pdus := splitDataIntoPDUs(sm, event.dimsePayload.abstractSyntaxName, true /*command*/, e.Bytes())
+		pdus := splitDataIntoPDUs(sm, event.dimsePayload.abstractSyntaxName, true /*command*/, b.Bytes())
 		for _, pdu := range pdus {
 			sendPDU(sm, &pdu)
 		}
@@ -401,12 +404,13 @@ var actionAr7 = &stateAction{"AR-7", "Issue P-DATA-TF PDU",
 		doassert(event.dimsePayload != nil)
 		command := event.dimsePayload.command
 		doassert(command != nil)
-		e := dicomio.NewBytesEncoder(nil, dicomio.UnknownVR)
-		dimse.EncodeMessage(e, command)
-		if e.Error() != nil {
-			panic(fmt.Sprintf("dicom.StateMachine %s: Failed to encode DIMSE cmd %v: %v", sm.label, command, e.Error()))
+		b := bytes.Buffer{}
+		e := dicomio.NewWriter(&b, binary.LittleEndian, true)
+		err := dimse.EncodeMessage(&e, command)
+		if err != nil {
+			panic(fmt.Sprintf("dicom.StateMachine %s: Failed to encode DIMSE cmd %v: %v", sm.label, command, err.Error()))
 		}
-		pdus := splitDataIntoPDUs(sm, event.dimsePayload.abstractSyntaxName, true /*command*/, e.Bytes())
+		pdus := splitDataIntoPDUs(sm, event.dimsePayload.abstractSyntaxName, true /*command*/, b.Bytes())
 		for _, pdu := range pdus {
 			sendPDU(sm, &pdu)
 		}
