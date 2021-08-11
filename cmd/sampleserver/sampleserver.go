@@ -20,12 +20,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/kristianvalind/go-netdicom"
-	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
 	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
+	dicomuid "github.com/suyashkumar/dicom/pkg/uid"
 )
 
 var (
@@ -52,7 +52,7 @@ type server struct {
 
 	// Set of dicom files the server manages. Keys are file paths.  Guarded
 	// by mu.
-	datasets map[string]*dicom.DataSet
+	datasets map[string]*dicom.Dataset
 
 	// For generating new unique path in C-STORE. Guarded by mu.
 	pathSeq int32

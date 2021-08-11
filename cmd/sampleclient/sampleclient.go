@@ -5,11 +5,11 @@ import (
 	"flag"
 	"log"
 
-	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/kristianvalind/go-netdicom"
-	"github.com/kristianvalind/go-netdicom/dimse"
-	"github.com/kristianvalind/go-netdicom/sopclass"
+	"github.com/kristianvalind/go-netdicom/pkg/dimse"
+	"github.com/kristianvalind/go-netdicom/pkg/sopclass"
 	"github.com/suyashkumar/dicom"
+	dicomtag "github.com/suyashkumar/dicom/pkg/tag"
 )
 
 var (
@@ -39,11 +39,11 @@ func newServiceUser(sopClasses []string) *netdicom.ServiceUser {
 func cStore(inPath string) {
 	su := newServiceUser(sopclass.StorageClasses)
 	defer su.Release()
-	dataset, err := dicom.ReadDataSetFromFile(inPath, dicom.ReadOptions{})
+	dataset, err := dicom.ParseFile(inPath, nil)
 	if err != nil {
 		log.Panicf("%s: %v", inPath, err)
 	}
-	err = su.CStore(dataset)
+	err = su.CStore(&dataset)
 	if err != nil {
 		log.Panicf("%s: cstore failed: %v", inPath, err)
 	}
