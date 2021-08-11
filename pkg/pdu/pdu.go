@@ -735,17 +735,17 @@ func ReadPDU(in io.Reader, maxPDUSize int) (PDU, error) {
 
 	err := binary.Read(in, binary.BigEndian, &pduType)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in reading pduType: %w", err)
 	}
 
 	err = binary.Read(in, binary.BigEndian, &skip)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in reading skip: %w", err)
 	}
 
 	err = binary.Read(in, binary.BigEndian, &length)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in reading length: %w", err)
 	}
 
 	if length >= uint32(maxPDUSize)*2 {
