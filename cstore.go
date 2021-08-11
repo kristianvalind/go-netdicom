@@ -22,7 +22,12 @@ func runCStoreOnAssociation(upcallCh chan upcallEvent, downcallCh chan stateEven
 		if err != nil {
 			return "", fmt.Errorf("dicom.cstore: data lacks %s: %v", tag.String(), err)
 		}
-		return elem.Value.String(), nil
+
+		elemStrings, ok := elem.Value.GetValue().([]string)
+		if !ok {
+			return "", fmt.Errorf("could not get string")
+		}
+		return elemStrings[0], nil
 	}
 	sopInstanceUID, err := getElement(dicomtag.MediaStorageSOPInstanceUID)
 	if err != nil {

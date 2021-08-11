@@ -94,7 +94,7 @@ func onCStoreRequest(
 		log.Panic(err)
 	}
 
-	ioW := dicomio.NewWriter(&b, binary.LittleEndian, false)
+	ioW := dicomio.NewWriter(&b, binary.LittleEndian, true)
 	err = ioW.WriteBytes(data)
 	if err != nil {
 		log.Panic(err)
@@ -414,7 +414,7 @@ func TestCGet(t *testing.T) {
 			require.True(t, len(cgetData) == 0, "Received multiple C-GET responses")
 			b := bytes.Buffer{}
 			w := dicom.NewWriter(&b)
-			w.SetTransferSyntax(binary.LittleEndian, false)
+			w.SetTransferSyntax(binary.LittleEndian, true)
 			elem, err := dicom.NewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
 			if err != nil {
 				log.Panic(err)
@@ -439,7 +439,7 @@ func TestCGet(t *testing.T) {
 			if err != nil {
 				log.Panic(err)
 			}
-			ioW := dicomio.NewWriter(&b, binary.LittleEndian, false)
+			ioW := dicomio.NewWriter(&b, binary.LittleEndian, true)
 			ioW.WriteBytes(data)
 			cgetData = b.Bytes()
 			return dimse.Success

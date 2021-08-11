@@ -223,14 +223,17 @@ func (su *ServiceUser) CStore(ds *dicom.Dataset) error {
 	}
 	doassert(su.cm != nil)
 
-	var sopClassUID string
 	sopClassUIDElem, err := ds.FindElementByTag(dicomtag.MediaStorageSOPClassUID)
 	if err != nil {
 		return err
 	}
-	sopClassUID = sopClassUIDElem.Value.String()
 
-	context, err := su.cm.lookupByAbstractSyntaxUID(sopClassUID)
+	sopClassUID, ok := sopClassUIDElem.Value.GetValue().([]string)
+	if !ok {
+		return fmt.Errorf("could not get sopClassUID string")
+	}
+
+	context, err := su.cm.lookupByAbstractSyntaxUID(sopClassUID[0])
 	if err != nil {
 		return err
 	}
