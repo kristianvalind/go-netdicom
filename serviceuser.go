@@ -338,7 +338,7 @@ func encodeQRPayload(opType qrOpType, qrLevel QRLevel, filter []*dicom.Element, 
 		log.Print(2, "dicom.serviceUser: Add QR payload: %v", elem)
 	}
 	if !foundQRLevel {
-		elem, err := dicom.NewElement(dicomtag.QueryRetrieveLevel, qrLevelString)
+		elem, err := dicom.NewElement(dicomtag.QueryRetrieveLevel, []string{qrLevelString})
 		if err != nil {
 			return context, nil, err
 		}

@@ -116,21 +116,21 @@ func onCFindRequest(
 	for _, elem := range filters {
 		log.Printf("Filter %v", elem)
 		if elem.Tag == dicomtag.QueryRetrieveLevel {
-			qrLevel, ok := elem.Value.GetValue().(string)
+			qrLevel, ok := elem.Value.GetValue().([]string)
 			if !ok {
 				log.Panic("qrLevel is not string")
 			}
-			if qrLevel != "PATIENT" {
+			if qrLevel[0] != "PATIENT" {
 				log.Panicf("Wrong QR level: %v", elem)
 			}
 			found++
 		}
 		if elem.Tag == dicomtag.PatientName {
-			patientName, ok := elem.Value.GetValue().(string)
+			patientName, ok := elem.Value.GetValue().([]string)
 			if !ok {
 				log.Print("patientName is not string")
 			}
-			if patientName != "foohah" {
+			if patientName[0] != "foohah" {
 				log.Panicf("Wrong patient name: %v", elem)
 			}
 			found++
@@ -364,7 +364,7 @@ func TestEcho(t *testing.T) {
 func TestFind(t *testing.T) {
 	su := mustNewServiceUser(t, sopclass.QRFindClasses)
 	defer su.Release()
-	filterElem, err := dicom.NewElement(dicomtag.PatientName, "foohah")
+	filterElem, err := dicom.NewElement(dicomtag.PatientName, []string{"foohah"})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -383,11 +383,11 @@ func TestFind(t *testing.T) {
 			if elem.Tag != dicomtag.PatientName {
 				t.Error(elem)
 			}
-			stringValue, ok := elem.Value.GetValue().(string)
+			stringValue, ok := elem.Value.GetValue().([]string)
 			if !ok {
 				t.Fatal("stringValue is not string")
 			}
-			namesFound = append(namesFound, stringValue)
+			namesFound = append(namesFound, stringValue[0])
 		}
 	}
 	if len(namesFound) != 2 || namesFound[0] != "johndoe" || namesFound[1] != "johndoe2" {
