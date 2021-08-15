@@ -239,9 +239,6 @@ func (su *ServiceUser) CStore(ds *dicom.Dataset) error {
 	}
 	cs, err := su.disp.newCommand(su.cm, context)
 	if err != nil {
-		return err
-	}
-	if err != nil {
 		log.Print(0, "dicom.serviceUser: C-STORE: sop class %v not found in context %v", sopClassUID, err)
 		return err
 	}

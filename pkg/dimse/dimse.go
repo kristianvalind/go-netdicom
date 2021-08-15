@@ -178,7 +178,7 @@ func newStatusElements(s Status) ([]*dicom.Element, error) {
 
 	elems := []*dicom.Element{statusElement}
 	if s.ErrorComment != "" {
-		commentElement, err := dicom.NewElement(dicomtag.ErrorComment, s.ErrorComment)
+		commentElement, err := dicom.NewElement(dicomtag.ErrorComment, []string{s.ErrorComment})
 		if err != nil {
 			return nil, err
 		}

@@ -67,7 +67,7 @@ func onCStoreRequest(
 	b := bytes.Buffer{}
 	w := dicom.NewWriter(&b)
 
-	el, err := dicom.NewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
+	el, err := dicom.NewElement(dicomtag.TransferSyntaxUID, []string{transferSyntaxUID})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -76,7 +76,7 @@ func onCStoreRequest(
 		log.Panic(err)
 	}
 
-	el, err = dicom.NewElement(dicomtag.MediaStorageSOPClassUID, sopClassUID)
+	el, err = dicom.NewElement(dicomtag.MediaStorageSOPClassUID, []string{sopClassUID})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -85,7 +85,7 @@ func onCStoreRequest(
 		log.Panic(err)
 	}
 
-	el, err = dicom.NewElement(dicomtag.MediaStorageSOPInstanceUID, sopInstanceUID)
+	el, err = dicom.NewElement(dicomtag.MediaStorageSOPInstanceUID, []string{sopInstanceUID})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -139,14 +139,14 @@ func onCFindRequest(
 	if found != 2 {
 		log.Panicf("Didn't find expected filters: %v", filters)
 	}
-	jdElement, err := dicom.NewElement(dicomtag.PatientName, "johndoe")
+	jdElement, err := dicom.NewElement(dicomtag.PatientName, []string{"johndoe"})
 	if err != nil {
 		log.Panic(err)
 	}
 	ch <- CFindResult{
 		Elements: []*dicom.Element{jdElement},
 	}
-	jdElement2, err := dicom.NewElement(dicomtag.PatientName, "johndoe2")
+	jdElement2, err := dicom.NewElement(dicomtag.PatientName, []string{"johndoe2"})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -398,7 +398,7 @@ func TestFind(t *testing.T) {
 func TestCGet(t *testing.T) {
 	su := mustNewServiceUser(t, sopclass.QRGetClasses)
 	defer su.Release()
-	filterElem, err := dicom.NewElement(dicomtag.PatientName, "foohah")
+	filterElem, err := dicom.NewElement(dicomtag.PatientName, []string{"foohah"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -415,7 +415,7 @@ func TestCGet(t *testing.T) {
 			b := bytes.Buffer{}
 			w := dicom.NewWriter(&b)
 			w.SetTransferSyntax(binary.LittleEndian, true)
-			elem, err := dicom.NewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
+			elem, err := dicom.NewElement(dicomtag.TransferSyntaxUID, []string{transferSyntaxUID})
 			if err != nil {
 				log.Panic(err)
 			}
@@ -423,7 +423,7 @@ func TestCGet(t *testing.T) {
 			if err != nil {
 				log.Panic(err)
 			}
-			elem, err = dicom.NewElement(dicomtag.MediaStorageSOPClassUID, sopClassUID)
+			elem, err = dicom.NewElement(dicomtag.MediaStorageSOPClassUID, []string{sopClassUID})
 			if err != nil {
 				log.Panic(err)
 			}
@@ -431,7 +431,7 @@ func TestCGet(t *testing.T) {
 			if err != nil {
 				log.Panic(err)
 			}
-			elem, err = dicom.NewElement(dicomtag.MediaStorageSOPInstanceUID, sopInstanceUID)
+			elem, err = dicom.NewElement(dicomtag.MediaStorageSOPInstanceUID, []string{sopInstanceUID})
 			if err != nil {
 				log.Panic(err)
 			}

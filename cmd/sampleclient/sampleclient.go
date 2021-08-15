@@ -23,6 +23,15 @@ var (
 	studyFlag         = flag.String("study", "", "Study instance UID to retrieve in C-{FIND,GET}.")
 )
 
+func mustNewElement(t dicomtag.Tag, v interface{}) *dicom.Element {
+	elem, err := dicom.NewElement(t, v)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return elem
+}
+
 func newServiceUser(sopClasses []string) *netdicom.ServiceUser {
 	su, err := netdicom.NewServiceUser(netdicom.ServiceUserParams{
 		CalledAETitle:  *remoteAETitleFlag,
@@ -52,28 +61,30 @@ func cStore(inPath string) {
 
 func generateCFindElements() (netdicom.QRLevel, []*dicom.Element) {
 	if *seriesFlag != "" {
-		return netdicom.QRLevelSeries, []*dicom.Element{dicom.MustNewElement(dicomtag.SeriesInstanceUID, *seriesFlag)}
+		return netdicom.QRLevelSeries, []*dicom.Element{mustNewElement(dicomtag.SeriesInstanceUID, *seriesFlag)}
 	}
 	if *studyFlag != "" {
-		return netdicom.QRLevelStudy, []*dicom.Element{dicom.MustNewElement(dicomtag.StudyInstanceUID, *studyFlag)}
+		return netdicom.QRLevelStudy, []*dicom.Element{mustNewElement(dicomtag.StudyInstanceUID, *studyFlag)}
 	}
 	args := []*dicom.Element{
-		dicom.MustNewElement(dicomtag.SpecificCharacterSet, "ISO_IR 100"),
-		dicom.MustNewElement(dicomtag.AccessionNumber, ""),
-		dicom.MustNewElement(dicomtag.ReferringPhysicianName, ""),
-		dicom.MustNewElement(dicomtag.PatientName, ""),
-		dicom.MustNewElement(dicomtag.PatientID, ""),
-		dicom.MustNewElement(dicomtag.PatientBirthDate, ""),
-		dicom.MustNewElement(dicomtag.PatientSex, ""),
-		dicom.MustNewElement(dicomtag.StudyInstanceUID, ""),
-		dicom.MustNewElement(dicomtag.RequestedProcedureDescription, ""),
-		dicom.MustNewElement(dicomtag.ScheduledProcedureStepSequence,
-			dicom.MustNewElement(dicomtag.Item,
-				dicom.MustNewElement(dicomtag.Modality, ""),
-				dicom.MustNewElement(dicomtag.ScheduledProcedureStepStartDate, ""),
-				dicom.MustNewElement(dicomtag.ScheduledProcedureStepStartTime, ""),
-				dicom.MustNewElement(dicomtag.ScheduledPerformingPhysicianName, ""),
-				dicom.MustNewElement(dicomtag.ScheduledProcedureStepStatus, ""))),
+		mustNewElement(dicomtag.SpecificCharacterSet, []string{"ISO_IR 100"}),
+		mustNewElement(dicomtag.AccessionNumber, []string{}),
+		mustNewElement(dicomtag.ReferringPhysicianName, []string{}),
+		mustNewElement(dicomtag.PatientName, []string{}),
+		mustNewElement(dicomtag.PatientID, []string{}),
+		mustNewElement(dicomtag.PatientBirthDate, []string{}),
+		mustNewElement(dicomtag.PatientSex, []string{}),
+		mustNewElement(dicomtag.StudyInstanceUID, []string{}),
+		mustNewElement(dicomtag.RequestedProcedureDescription, []string{}),
+		mustNewElement(dicomtag.ScheduledProcedureStepSequence, [][]*dicom.Element{
+			{
+				mustNewElement(dicomtag.Modality, []string{}),
+				mustNewElement(dicomtag.ScheduledProcedureStepStartDate, []string{}),
+				mustNewElement(dicomtag.ScheduledProcedureStepStartTime, []string{}),
+				mustNewElement(dicomtag.ScheduledPerformingPhysicianName, []string{}),
+				mustNewElement(dicomtag.ScheduledProcedureStepStatus, []string{}),
+			}},
+		),
 	}
 	return netdicom.QRLevelPatient, args
 }
