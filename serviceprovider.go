@@ -10,8 +10,8 @@ import (
 	dicom "github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-netdicom/dimse"
-	"github.com/grailbio/go-netdicom/sopclass"
+	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/sopclass"
 )
 
 // CMoveResult is an object streamed by CMove implementation.

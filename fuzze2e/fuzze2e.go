@@ -6,9 +6,9 @@ import (
 	"net"
 
 	"github.com/grailbio/go-dicom"
-	"github.com/grailbio/go-netdicom"
-	"github.com/grailbio/go-netdicom/dimse"
-	"github.com/grailbio/go-netdicom/sopclass"
+	"github.com/kristianvalind/go-netdicom"
+	"github.com/kristianvalind/go-netdicom/dimse"
+	"github.com/kristianvalind/go-netdicom/sopclass"
 )
 
 func startServer(faults netdicom.FaultInjector) net.Listener {
